@@ -1,0 +1,422 @@
+---
+title: Flashcard API
+description: Generate and retrieve AI-powered flashcards for document study
+---
+
+## Overview
+
+The Flashcard API enables AI-powered flashcard generation from PDF documents to help users study and memorize key concepts.
+
+## Procedures
+
+### getFlashcards
+
+Retrieve all flashcards for a document, including attempt history. Available to document owners and collaborators.
+
+<ParamField path="documentId" type="string" required>
+  The document ID to retrieve flashcards for
+</ParamField>
+
+**Returns:** Array of flashcards with questions, answers, and attempt history
+
+<ResponseField name="[]" type="Flashcard[]">
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      Unique flashcard identifier
+    </ResponseField>
+    
+    <ResponseField name="question" type="string">
+      The flashcard question
+    </ResponseField>
+    
+    <ResponseField name="answer" type="string">
+      The correct answer
+    </ResponseField>
+    
+    <ResponseField name="flashcardAttempts" type="FlashcardAttempt[]">
+      Array of user attempts at answering this flashcard
+      
+      <Expandable title="attempt properties">
+        <ResponseField name="userResponse" type="string">
+          What the user answered
+        </ResponseField>
+        
+        <ResponseField name="correctResponse" type="string | null">
+          Parts of the answer the user got right
+        </ResponseField>
+        
+        <ResponseField name="incorrectResponse" type="string | null">
+          Parts of the answer the user got wrong
+        </ResponseField>
+        
+        <ResponseField name="moreInfo" type="string | null">
+          Additional information or explanation
+        </ResponseField>
+        
+        <ResponseField name="createdAt" type="Date">
+          When the attempt was made
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+**Example:**
+
+<CodeGroup>
+```typescript React Component
+import { api } from "@/lib/api";
+
+function FlashcardDeck({ documentId }: { documentId: string }) {
+  const { data: flashcards, isLoading } = api.flashcard.getFlashcards.useQuery({ 
+    documentId 
+  });
+  
+  if (isLoading) return <div>Loading flashcards...</div>;
+  
+  if (!flashcards || flashcards.length === 0) {
+    return <div>No flashcards yet. Generate some!</div>;
+  }
+  
+  return (
+    <div>
+      <h2>Study Flashcards ({flashcards.length})</h2>
+      {flashcards.map((card) => (
+        <div key={card.id} className="flashcard">
+          <div className="question">{card.question}</div>
+          <div className="answer">{card.answer}</div>
+          <div className="attempts">
+            Attempts: {card.flashcardAttempts.length}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+```typescript Response
+[
+  {
+    id: "fc1",
+    question: "What is the main principle of neural networks?",
+    answer: "Neural networks learn patterns from data through interconnected layers of nodes that adjust their weights based on training examples.",
+    flashcardAttempts: [
+      {
+        userResponse: "They learn from data using connected nodes",
+        correctResponse: "learn from data, connected nodes",
+        incorrectResponse: null,
+        moreInfo: "Good understanding of the basic concept",
+        createdAt: "2024-03-15T10:30:00Z"
+      }
+    ]
+  },
+  {
+    id: "fc2",
+    question: "What is backpropagation?",
+    answer: "Backpropagation is an algorithm for training neural networks by calculating gradients and updating weights to minimize error.",
+    flashcardAttempts: []
+  }
+]
+```
+</CodeGroup>
+
+---
+
+### generateFlashcards
+
+Generate flashcards from a document using AI. Available to document owners and collaborators.
+
+<ParamField path="documentId" type="string" required>
+  The document ID to generate flashcards from
+</ParamField>
+
+**Returns:** Result of the batch creation operation
+
+<ResponseField name="count" type="number">
+  Number of flashcards created
+</ResponseField>
+
+<Note>
+Flashcard generation:
+- Uses AI to extract key concepts from the document
+- Number of flashcards depends on document length and complexity
+- Respects the user's plan limits for pages per document
+- May take several seconds to complete for large documents
+</Note>
+
+<Warning>
+Flashcard generation requires:
+- Document must be successfully uploaded and accessible
+- User's plan allows for the document's page count
+- AI service must be available
+</Warning>
+
+**Example:**
+
+<CodeGroup>
+```typescript Generate Flashcards
+import { api } from "@/lib/api";
+
+function GenerateFlashcardsButton({ documentId }: { documentId: string }) {
+  const utils = api.useContext();
+  
+  const generateMutation = api.flashcard.generateFlashcards.useMutation({
+    onSuccess: (result) => {
+      toast.success(`Generated ${result.count} flashcards!`);
+      // Refetch flashcards to show new ones
+      utils.flashcard.getFlashcards.invalidate({ documentId });
+    },
+    onError: (error) => {
+      toast.error("Failed to generate flashcards");
+    }
+  });
+  
+  return (
+    <button 
+      onClick={() => generateMutation.mutate({ documentId })}
+      disabled={generateMutation.isLoading}
+    >
+      {generateMutation.isLoading 
+        ? "Generating flashcards..." 
+        : "Generate Flashcards"
+      }
+    </button>
+  );
+}
+```
+
+```typescript With Loading State
+function FlashcardGenerator({ documentId }: { documentId: string }) {
+  const [status, setStatus] = useState<'idle' | 'generating' | 'success'>('idle');
+  
+  const generateMutation = api.flashcard.generateFlashcards.useMutation({
+    onMutate: () => setStatus('generating'),
+    onSuccess: () => setStatus('success'),
+    onError: () => setStatus('idle'),
+  });
+  
+  return (
+    <div>
+      {status === 'idle' && (
+        <button onClick={() => generateMutation.mutate({ documentId })}>
+          Generate Flashcards
+        </button>
+      )}
+      
+      {status === 'generating' && (
+        <div>
+          <Spinner />
+          <p>Analyzing document and generating flashcards...</p>
+        </div>
+      )}
+      
+      {status === 'success' && (
+        <div>
+          <CheckIcon />
+          <p>Flashcards generated successfully!</p>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+</CodeGroup>
+
+## Data Models
+
+### Flashcard Schema
+
+```typescript
+interface Flashcard {
+  id: string;
+  question: string;
+  answer: string;
+  documentId: string;
+  createdAt: Date;
+  flashcardAttempts: FlashcardAttempt[];
+}
+```
+
+### FlashcardAttempt Schema
+
+```typescript
+interface FlashcardAttempt {
+  id: string;
+  flashcardId: string;
+  userId: string;
+  createdAt: Date;
+  userResponse: string;           // User's answer
+  correctResponse: string | null;  // What they got right
+  incorrectResponse: string | null; // What they got wrong
+  moreInfo: string | null;         // Additional explanation
+}
+```
+
+## Authorization
+
+Flashcard procedures are available to:
+
+- Document owners
+- All collaborators (regardless of role)
+
+This allows entire teams to study together and see each other's progress.
+
+```typescript
+// Authorization check
+const doc = await ctx.prisma.document.findUnique({
+  where: {
+    id: input.documentId,
+    OR: [
+      { ownerId: ctx.session.user.id },
+      {
+        collaborators: {
+          some: {
+            userId: ctx.session.user.id,
+          },
+        },
+      },
+    ],
+  },
+});
+```
+
+## Plan Limits
+
+Flashcard generation respects user plan limits:
+
+```typescript
+import { PLANS } from "@/lib/constants";
+
+const maxPagesAllowed = PLANS[user.plan].maxPagesPerDoc;
+
+// Plans:
+// - FREE: Limited pages per document
+// - FREE_PLUS: More pages allowed  
+// - PRO: Maximum pages allowed
+```
+
+## Use Cases
+
+### Study Mode
+
+```typescript
+function StudyMode({ documentId }: { documentId: string }) {
+  const { data: flashcards } = api.flashcard.getFlashcards.useQuery({ documentId });
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [showAnswer, setShowAnswer] = useState(false);
+  
+  const currentCard = flashcards?.[currentIndex];
+  
+  return (
+    <div className="study-card">
+      <h3>Question {currentIndex + 1} of {flashcards?.length}</h3>
+      <p>{currentCard?.question}</p>
+      
+      {showAnswer && <p><strong>Answer:</strong> {currentCard?.answer}</p>}
+      
+      <button onClick={() => setShowAnswer(!showAnswer)}>
+        {showAnswer ? "Hide" : "Show"} Answer
+      </button>
+      
+      <button onClick={() => setCurrentIndex(currentIndex + 1)}>
+        Next Card
+      </button>
+    </div>
+  );
+}
+```
+
+### Progress Tracking
+
+```typescript
+function FlashcardProgress({ documentId }: { documentId: string }) {
+  const { data: flashcards } = api.flashcard.getFlashcards.useQuery({ documentId });
+  
+  const stats = {
+    total: flashcards?.length ?? 0,
+    attempted: flashcards?.filter(c => c.flashcardAttempts.length > 0).length ?? 0,
+    mastered: flashcards?.filter(c => 
+      c.flashcardAttempts.length >= 3 && 
+      c.flashcardAttempts.every(a => a.incorrectResponse === null)
+    ).length ?? 0,
+  };
+  
+  return (
+    <div>
+      <h3>Study Progress</h3>
+      <p>Total Cards: {stats.total}</p>
+      <p>Attempted: {stats.attempted}</p>
+      <p>Mastered: {stats.mastered}</p>
+      <ProgressBar value={stats.mastered} max={stats.total} />
+    </div>
+  );
+}
+```
+
+### Spaced Repetition
+
+```typescript
+function SpacedRepetition({ documentId }: { documentId: string }) {
+  const { data: flashcards } = api.flashcard.getFlashcards.useQuery({ documentId });
+  
+  const cardsToReview = flashcards?.filter(card => {
+    const lastAttempt = card.flashcardAttempts[card.flashcardAttempts.length - 1];
+    if (!lastAttempt) return true; // Never attempted
+    
+    const daysSinceAttempt = 
+      (Date.now() - new Date(lastAttempt.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+    
+    // Review if it's been more than 3 days or if incorrect
+    return daysSinceAttempt > 3 || lastAttempt.incorrectResponse !== null;
+  });
+  
+  return (
+    <div>
+      <h3>Cards Due for Review: {cardsToReview?.length}</h3>
+      {cardsToReview?.map(card => (
+        <FlashcardReview key={card.id} card={card} />
+      ))}
+    </div>
+  );
+}
+```
+
+## Error Handling
+
+Common errors:
+
+- `UNAUTHORIZED` - User doesn't have access to the document
+- `INTERNAL_SERVER_ERROR` - AI service error or document processing failure
+
+```typescript
+const generateMutation = api.flashcard.generateFlashcards.useMutation({
+  onError: (error) => {
+    if (error.data?.code === "UNAUTHORIZED") {
+      toast.error("You don't have access to this document");
+    } else if (error.data?.code === "INTERNAL_SERVER_ERROR") {
+      toast.error("Failed to generate flashcards. Please try again.");
+    }
+  },
+});
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Generate Once" icon="sparkles">
+    Generate flashcards once per document to avoid duplicates and API costs
+  </Card>
+  
+  <Card title="Cache Results" icon="database">
+    Flashcard data is cached by React Query. Use `refetch` when needed
+  </Card>
+  
+  <Card title="Track Progress" icon="chart-line">
+    Use attempt history to implement spaced repetition and progress tracking
+  </Card>
+  
+  <Card title="Handle Long Operations" icon="clock">
+    Show loading states during generation - it may take 10-30 seconds
+  </Card>
+</CardGroup>

@@ -1,80 +1,235 @@
 ---
 title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+description: "Get Uxie running locally in under 10 minutes and start enhancing your learning experience with AI-powered PDF reading."
 ---
 
-## Get started in three steps
+This guide will help you get Uxie up and running on your local machine quickly. You'll set up the application, create an account, and explore the core features.
 
-Get your documentation site running locally and make your first customization.
+## Prerequisites
 
-### Step 1: Set up your local environment
+Before you begin, ensure you have:
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
-</CardGroup>
+- Node.js v18 or later installed
+- pnpm package manager
+- Git for cloning the repository
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  If you don't have pnpm installed, run `npm install -g pnpm` to install it globally.
 </Note>
+
+## Quick Setup
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/zeus-12/uxie.git
+    cd uxie
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    <CodeGroup>
+      ```bash pnpm
+      pnpm install
+      ```
+
+      ```bash npm
+      npm install
+      ```
+
+      ```bash yarn
+      yarn install
+      ```
+    </CodeGroup>
+
+    This will install all required packages and automatically generate the Prisma client.
+  </Step>
+
+  <Step title="Set up environment variables">
+    Copy the example environment file:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    At minimum, you'll need to configure:
+
+    ```bash .env
+    DATABASE_URL="postgresql://user:password@localhost:5432/uxie"
+    NEXTAUTH_SECRET="your-secret-here"
+    NEXTAUTH_URL="http://localhost:3000"
+    GOOGLE_CLIENT_ID="your-google-client-id"
+    GOOGLE_CLIENT_SECRET="your-google-client-secret"
+    ```
+
+    <Warning>
+      Generate a secure NEXTAUTH_SECRET using `openssl rand -base64 32`
+    </Warning>
+
+    For full functionality, you'll also need API keys for:
+    - Supabase (database)
+    - Uploadthing (PDF storage)
+    - Pinecone (vector embeddings)
+    - Google AI (LLM features)
+    - Hugging Face (embeddings)
+    - Liveblocks (real-time collaboration)
+
+    See the [Installation](/installation) guide for detailed configuration.
+  </Step>
+
+  <Step title="Set up the database">
+    Push the Prisma schema to your database:
+
+    ```bash
+    pnpm prisma db push
+    ```
+
+    This creates all necessary tables in your PostgreSQL database.
+  </Step>
+
+  <Step title="Start the development server">
+    ```bash
+    pnpm dev
+    ```
+
+    The application will be available at [http://localhost:3000](http://localhost:3000)
+  </Step>
+</Steps>
+
+## First Steps with Uxie
+
+Once your application is running, here's how to get started:
+
+<Steps>
+  <Step title="Create an account">
+    1. Navigate to [http://localhost:3000](http://localhost:3000)
+    2. Click "Sign in" and authenticate with Google
+    3. Your account will be created automatically
+  </Step>
+
+  <Step title="Upload your first PDF">
+    1. Click the **"Upload"** button on the dashboard
+    2. Select a PDF file from your computer
+    3. Wait for the upload to complete (progress indicator will show)
+    4. The PDF will appear in your document library
+
+    <Note>
+      PDFs are stored using Uploadthing. For local development without Uploadthing, some features may be limited.
+    </Note>
+  </Step>
+
+  <Step title="Explore core features">
+    After uploading, you can:
+
+    **Reading & Annotation**
+    - Highlight text by selecting it with your mouse
+    - Add notes by clicking on highlights
+    - Create image highlights by selecting areas
+
+    **AI-Powered Features**
+    - Ask questions about the PDF content
+    - Get AI-generated summaries
+    - Generate flashcards for learning
+    - Use text-to-speech for hands-free reading
+
+    **Note-Taking**
+    - Use the BlockNote editor for rich text notes
+    - Add custom blocks and formatting
+    - Download notes as Markdown
+  </Step>
+
+  <Step title="Try AI features">
+    1. Open a PDF document
+    2. Click the **AI Chat** button
+    3. Ask questions like:
+       - "Summarize this document"
+       - "What are the key points on page 5?"
+       - "Explain this concept in simple terms"
+
+    <Warning>
+      AI features require GOOGLE_GENERATIVE_AI_API_KEY and PINECONE_API_KEY to be configured.
+    </Warning>
+  </Step>
+
+  <Step title="Generate flashcards">
+    1. Navigate to the Flashcards section
+    2. Click **"Generate Flashcards"**
+    3. The AI will create questions based on your PDF
+    4. Answer questions and receive instant feedback
+
+    The system uses AI evaluation to provide detailed feedback on your responses.
+  </Step>
+</Steps>
+
+## Reading Modes
+
+Uxie offers several specialized reading modes to enhance your learning:
+
+- **Bionic Reading Mode**: Helps you read faster by highlighting key parts of words
+- **RSVP Reading Mode**: Displays one word at a time for focused reading
+- **Read-Along Mode**: Highlights text as it's being read aloud
+- **Full-Screen View**: Distraction-free reading experience
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Installation Guide" icon="download" href="/installation">
+    Complete setup instructions with all environment variables
+  </Card>
+  
+  <Card title="Core Features" icon="stars" href="/features/pdf-reading">
+    Explore all available features in detail
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Learn about the tRPC API endpoints
+  </Card>
+  
+  <Card title="Contributing" icon="github" href="/development/contributing">
+    Contribute to Uxie's development
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Development server won't start">
+    Make sure:
+    - Node.js v18 or later is installed
+    - All dependencies are installed (`pnpm install`)
+    - Environment variables are properly set
+    - Port 3000 is not in use by another application
+  </Accordion>
+
+  <Accordion title="Database connection errors">
+    Verify:
+    - PostgreSQL is running
+    - DATABASE_URL is correctly formatted
+    - Database exists and is accessible
+    - Run `pnpm prisma db push` to sync the schema
+  </Accordion>
+
+  <Accordion title="Authentication not working">
+    Check:
+    - GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are valid
+    - NEXTAUTH_SECRET is set
+    - NEXTAUTH_URL matches your application URL
+    - Google OAuth redirect URIs include `http://localhost:3000/api/auth/callback/google`
+  </Accordion>
+
+  <Accordion title="PDF upload fails">
+    Ensure:
+    - UPLOADTHING_TOKEN is configured
+    - You have an active Uploadthing account
+    - The PDF file is valid and not corrupted
+  </Accordion>
+</AccordionGroup>
+
+## Need Help?
+
+If you encounter issues:
+
+1. Check the [Installation](/installation) guide for detailed configuration
+2. Review [GitHub Issues](https://github.com/zeus-12/uxie/issues) for known problems
+3. Open a new issue with details about your problem
+4. Submit feedback through the app at [https://uxie.vercel.app/feedback](https://uxie.vercel.app/feedback)

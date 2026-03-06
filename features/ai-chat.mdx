@@ -1,0 +1,373 @@
+---
+title: AI Chat
+description: Ask questions about your PDFs using Gemini-powered AI with document context and RAG technology
+---
+
+## Overview
+
+Uxie's AI Chat lets you have intelligent conversations about your PDF documents. Powered by Google's Gemini 2.5 Flash, it uses Retrieval-Augmented Generation (RAG) to answer questions accurately based on your document's actual content.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Document-Aware AI" icon="brain">
+    AI answers based on your actual PDF content, not general knowledge
+  </Card>
+  <Card title="Context Search" icon="magnifying-glass">
+    Automatically finds relevant sections to answer your questions
+  </Card>
+  <Card title="Persistent History" icon="clock-rotate-left">
+    All conversations are saved and accessible anytime
+  </Card>
+  <Card title="Quick Actions" icon="bolt">
+    Explain or summarize text directly from PDF selections
+  </Card>
+</CardGroup>
+
+## Getting Started
+
+### Activating AI Chat
+
+Before you can use AI Chat, your document must be vectorized:
+
+<Steps>
+  <Step title="Open Chat Panel">
+    Click the **Chat** tab in the right sidebar
+  </Step>
+  <Step title="Turn PDF Interactive">
+    Click the **"Turn PDF Interactive"** button
+  </Step>
+  <Step title="Wait for Processing">
+    The document is processed and vectorized (this may take a moment)
+  </Step>
+  <Step title="Start Chatting">
+    Once complete, the chat interface appears - you're ready to ask questions!
+  </Step>
+</Steps>
+
+<Note>
+  Vectorization converts your PDF into a searchable format that enables AI to find relevant information quickly. This is a one-time process per document.
+</Note>
+
+### What Vectorization Does
+
+<Accordion title="Technical Details">
+  - Extracts text from your PDF
+  - Splits content into chunks (1000 characters with 200-character overlap)
+  - Creates embeddings using AI models
+  - Stores vectors in Pinecone database
+  - Enables semantic search across your document
+  
+  Implementation at `/src/lib/vectorise.ts`
+</Accordion>
+
+## Using AI Chat
+
+### Asking Questions
+
+<Steps>
+  <Step title="Type Your Question">
+    Enter your question in the chat input at the bottom
+  </Step>
+  <Step title="Send">
+    Press Enter or click the arrow button
+  </Step>
+  <Step title="AI Searches">
+    The AI automatically searches your document for relevant information
+  </Step>
+  <Step title="Receive Answer">
+    Get a comprehensive answer based on the retrieved content
+  </Step>
+</Steps>
+
+<Tip>
+  Ask specific questions for best results. Instead of "What is this about?", try "What are the main causes discussed in section 3?"
+</Tip>
+
+### Example Questions
+
+Great questions to ask:
+
+- "What are the key findings in this research?"
+- "Summarize the methodology section"
+- "What evidence supports the main argument?"
+- "Explain the concept of [topic] from this paper"
+- "What are the limitations mentioned?"
+- "Compare the approaches in sections 2 and 4"
+
+## Quick Actions from PDF
+
+### Explain Selected Text
+
+<Steps>
+  <Step title="Select Text in PDF">
+    Highlight any text passage in your PDF
+  </Step>
+  <Step title="Click Explain">
+    Click the lightbulb icon in the popover
+  </Step>
+  <Step title="View Explanation">
+    The Chat panel opens automatically with an AI explanation
+  </Step>
+</Steps>
+
+Perfect for understanding complex passages, technical terms, or dense paragraphs.
+
+### Summarize Selected Text
+
+<Steps>
+  <Step title="Select Text in PDF">
+    Highlight the passage you want summarized
+  </Step>
+  <Step title="Click Summarize">
+    Click the book icon in the popover
+  </Step>
+  <Step title="View Summary">
+    Get a concise summary in the Chat panel
+  </Step>
+</Steps>
+
+Ideal for long sections, detailed descriptions, or extracting main points.
+
+## Chat Interface
+
+### Message Types
+
+**Your messages**:
+- Appear on the right side
+- Blue background
+- Show your questions and prompts
+
+**AI responses**:
+- Appear on the left side
+- Gray background
+- Support markdown formatting (bold, lists, code, etc.)
+- May include "Reading the document..." indicator while searching
+
+### Message Controls
+
+<Accordion title="Stopping Generation">
+  While AI is generating a response:
+  - Click the **stop button** (ban icon)
+  - Or press **Escape**
+  - The AI stops immediately
+</Accordion>
+
+<Accordion title="Message History">
+  - All messages are automatically saved
+  - Scroll up to view previous conversations
+  - History persists across sessions
+  - Reload the page to see all past messages
+</Accordion>
+
+### Chat Limitations
+
+<Note>
+  - Maximum message length: 1000 characters
+  - Maximum response tokens: 2000
+  - Step count limit: 3 (prevents infinite tool calls)
+</Note>
+
+## How It Works
+
+### RAG (Retrieval-Augmented Generation)
+
+Uxie uses advanced RAG technology:
+
+<Steps>
+  <Step title="Question Analysis">
+    Your question is analyzed by the AI
+  </Step>
+  <Step title="Document Search">
+    The `getInformation` tool searches vectorized content for relevant passages
+  </Step>
+  <Step title="Context Retrieval">
+    Top matching sections are retrieved from the database
+  </Step>
+  <Step title="Answer Generation">
+    AI generates an answer using ONLY the retrieved content
+  </Step>
+</Steps>
+
+### AI Model
+
+**Gemini 2.5 Flash** by Google:
+- Fast response times
+- High-quality comprehension
+- Strong reasoning capabilities
+- Excellent at following instructions
+
+Model endpoint: `google("gemini-2.5-flash")` at `/src/app/api/chat/route.ts:91`
+
+### Tool Calling
+
+The AI has access to the `getInformation` tool:
+
+```typescript
+{
+  name: "getInformation",
+  description: "Search the PDF for relevant information",
+  input: { question: string },
+  output: { results: DocumentChunk[] }
+}
+```
+
+This tool is automatically called for every user question to ensure answers are grounded in the document.
+
+## Conversation Flow
+
+### System Prompt
+
+The AI follows this directive:
+
+> "You are a helpful assistant with access to a PDF document. Your primary task is to answer questions based on the content of this PDF. ALWAYS use the 'getInformation' function to search the PDF for relevant information."
+
+Full prompt at `/src/app/api/chat/route.ts:157`.
+
+### Multi-Step Reasoning
+
+For complex questions:
+
+1. AI may call `getInformation` multiple times
+2. Each call refines the search based on previous results
+3. Up to 3 tool calls allowed per conversation turn
+4. Final response synthesizes all retrieved information
+
+## Best Practices
+
+<Tip>
+  **Be specific**: "What methodology was used in the experiment?" works better than "Tell me about methods."
+</Tip>
+
+<Tip>
+  **Ask follow-ups**: Build on previous questions to dive deeper into topics.
+</Tip>
+
+<Tip>
+  **Combine with highlights**: Highlight important sections first, then ask AI to elaborate or connect ideas.
+</Tip>
+
+<Tip>
+  **Verify critical info**: For important decisions, verify AI responses by checking the source sections in your PDF.
+</Tip>
+
+## Privacy & Data
+
+<Accordion title="What data is sent?">
+  - Your question
+  - Retrieved document chunks (not the entire PDF)
+  - Previous conversation context
+  - Document ID (for retrieval)
+</Accordion>
+
+<Accordion title="Where is data stored?">
+  - Embeddings: Pinecone vector database
+  - Chat history: Your Uxie database
+  - AI processing: Google's Gemini API
+</Accordion>
+
+<Accordion title="Who can see chats?">
+  - Only you and collaborators on the document
+  - Chats are private to each document
+  - No cross-document information sharing
+</Accordion>
+
+## Technical Implementation
+
+### API Route
+
+**Endpoint**: `/api/chat`
+
+**Method**: POST
+
+**Request body**:
+```typescript
+{
+  messages: Message[],
+  docId: string
+}
+```
+
+**Response**: Streaming text response
+
+Implementation at `/src/app/api/chat/route.ts`.
+
+### Vector Search
+
+Query flow:
+1. Convert question to embedding
+2. Search Pinecone for similar vectors
+3. Return top K most relevant chunks
+4. Pass chunks to AI for answer generation
+
+Vector search implementation at `/src/lib/vectorise.ts`.
+
+### Component Architecture
+
+```typescript
+<Chat isVectorised={doc.isVectorised}>
+  {!isVectorised && <FeatureCard />}
+  {isVectorised && (
+    <>
+      <MessageWindow />
+      <ChatInput />
+    </>
+  )}
+</Chat>
+```
+
+Component at `/src/components/chat/index.tsx`.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="'Turn PDF Interactive' button doesn't work">
+    - Check your internet connection
+    - Ensure the PDF has extractable text (not scanned images - use OCR first)
+    - Try refreshing the page
+    - Check if you have sufficient credits/quota
+  </Accordion>
+  
+  <Accordion title="AI says 'information couldn't be found'">
+    - The answer might not be in your document
+    - Try rephrasing your question
+    - Be more specific about which section to search
+    - Check if the document uploaded correctly
+  </Accordion>
+  
+  <Accordion title="Responses are slow">
+    - Large documents take longer to search
+    - Complex questions may require multiple searches
+    - AI generation speed depends on server load
+    - Consider asking more focused questions
+  </Accordion>
+  
+  <Accordion title="Chat history disappeared">
+    - Check if you're viewing the correct document
+    - Refresh the page to reload history
+    - History is document-specific
+  </Accordion>
+</AccordionGroup>
+
+## Limitations
+
+<Warning>
+  - AI can only answer based on content in your PDF
+  - Scanned PDFs must be OCR'd first for AI to access text
+  - Very long documents may have incomplete context
+  - AI may occasionally misinterpret complex technical content
+</Warning>
+
+## Related Features
+
+<CardGroup cols={3}>
+  <Card title="Annotations" icon="highlighter" href="/features/annotations">
+    Explain and summarize highlights
+  </Card>
+  <Card title="Note Taking" icon="note-sticky" href="/features/note-taking">
+    AI writing assistance in notes
+  </Card>
+  <Card title="OCR" icon="text" href="/features/ocr">
+    Make scanned PDFs AI-searchable
+  </Card>
+</CardGroup>

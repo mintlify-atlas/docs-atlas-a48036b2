@@ -1,0 +1,146 @@
+---
+title: Environment Variables
+description: Complete guide to all environment variables required to run Uxie
+---
+
+Uxie requires several environment variables to be configured for proper operation. Create a `.env` file in the root of your project with the following variables.
+
+## Database
+
+<ParamField path="DATABASE_URL" type="string" required>
+  PostgreSQL database connection string. Used by Prisma to connect to your database.
+  
+  **Format:** `postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public`
+  
+  **Example:** `postgresql://postgres:password@db.example.supabase.co:5432/postgres`
+</ParamField>
+
+## Authentication
+
+<ParamField path="NEXTAUTH_SECRET" type="string" required>
+  Secret key used to encrypt JWT tokens and session data. Generate a secure random string.
+  
+  **Generate with:** `openssl rand -base64 32`
+</ParamField>
+
+<ParamField path="NEXTAUTH_URL" type="string" required>
+  The canonical URL of your site. Used by NextAuth for redirects and callbacks.
+  
+  **Development:** `http://localhost:3000`
+  
+  **Production:** `https://yourdomain.com`
+</ParamField>
+
+<ParamField path="GOOGLE_CLIENT_ID" type="string" required>
+  OAuth 2.0 Client ID from Google Cloud Console. Required for Google Sign-In.
+  
+  Get this from [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+</ParamField>
+
+<ParamField path="GOOGLE_CLIENT_SECRET" type="string" required>
+  OAuth 2.0 Client Secret from Google Cloud Console. Keep this secure.
+</ParamField>
+
+## AI Services
+
+<ParamField path="GOOGLE_GENERATIVE_AI_API_KEY" type="string" required>
+  API key for Google's Gemini AI models. Used for document summarization, chat, flashcard generation, and evaluation.
+  
+  **Models used:**
+  - `gemini-2.5-flash` - Chat, summarization, flashcards
+  - `gemini-1.5-pro` - Answer evaluation
+  
+  Get your API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+</ParamField>
+
+<ParamField path="HUGGINGFACE_API_KEY" type="string" required>
+  Hugging Face API key for text embeddings. Used to generate vector embeddings for document search.
+  
+  **Model:** `sentence-transformers/all-MiniLM-L6-v2`
+  
+  Get your API key from [Hugging Face Settings](https://huggingface.co/settings/tokens)
+</ParamField>
+
+## Vector Database
+
+<ParamField path="PINECONE_API_KEY" type="string" required>
+  API key for Pinecone vector database. Used to store and query document embeddings.
+  
+  **Index name:** `uxie`
+  
+  Get your API key from [Pinecone Console](https://app.pinecone.io/)
+</ParamField>
+
+<ParamField path="PINECONE_ENVIRONMENT" type="string" required>
+  Pinecone environment/region where your index is hosted.
+  
+  **Example:** `us-east-1-aws` or `gcp-starter`
+  
+  <Warning>
+    This variable is defined in `.env.example` but may not be used in current Pinecone SDK versions. Check your Pinecone dashboard for the correct configuration.
+  </Warning>
+</ParamField>
+
+## File Storage
+
+<ParamField path="UPLOADTHING_TOKEN" type="string" required>
+  API token for UploadThing file storage. Used to handle PDF uploads.
+  
+  **Max file size:** 8MB per PDF
+  
+  **Max file count:** 1 per upload
+  
+  Get your token from [UploadThing Dashboard](https://uploadthing.com/dashboard)
+</ParamField>
+
+## Real-time Collaboration
+
+<ParamField path="NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_API_KEY" type="string" required>
+  Public API key for Liveblocks real-time collaboration features.
+  
+  <Note>
+    This is a public key (prefixed with `NEXT_PUBLIC_`) and will be exposed to the client. Use the public key, not the secret key.
+  </Note>
+  
+  Get your API key from [Liveblocks Dashboard](https://liveblocks.io/dashboard)
+</ParamField>
+
+## Application
+
+<ParamField path="NODE_ENV" type="string" default="development">
+  Node.js environment mode.
+  
+  **Options:**
+  - `development` - Local development
+  - `production` - Production deployment
+  - `test` - Testing environment
+</ParamField>
+
+## Example Configuration
+
+```bash .env
+DATABASE_URL=postgresql://postgres:password@localhost:5432/uxie
+NEXTAUTH_SECRET=your-secret-here
+NEXTAUTH_URL=http://localhost:3000
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-client-secret
+NODE_ENV=development
+UPLOADTHING_TOKEN=your-uploadthing-token
+PINECONE_ENVIRONMENT=us-east-1-aws
+PINECONE_API_KEY=your-pinecone-api-key
+HUGGINGFACE_API_KEY=your-huggingface-api-key
+NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_API_KEY=your-liveblocks-public-key
+GOOGLE_GENERATIVE_AI_API_KEY=your-gemini-api-key
+```
+
+## Security Best Practices
+
+<Warning>
+  Never commit your `.env` file to version control. Always use `.env.example` for templates.
+</Warning>
+
+- Use strong, randomly generated secrets for `NEXTAUTH_SECRET`
+- Rotate API keys regularly
+- Use different credentials for development and production
+- Store production secrets in a secure secrets manager
+- Limit API key permissions to only what's needed

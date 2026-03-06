@@ -1,0 +1,363 @@
+---
+title: Flashcards
+description: AI-generated flashcards for studying, with spaced repetition tracking and instant feedback
+---
+
+## Overview
+
+Uxie automatically generates flashcards from your PDF documents using AI, helping you study and retain information effectively. Each flashcard tracks your performance over time, making it easy to focus on areas that need more practice.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="AI Generation" icon="wand-magic-sparkles">
+    Automatically create question-answer pairs from your document
+  </Card>
+  <Card title="Performance Tracking" icon="chart-line">
+    Track correct and incorrect answers for each card
+  </Card>
+  <Card title="Instant Feedback" icon="check-circle">
+    Get immediate feedback with detailed explanations
+  </Card>
+  <Card title="Progress Through Set" icon="forward">
+    Navigate through cards with visual progress indicators
+  </Card>
+</CardGroup>
+
+## Getting Started
+
+### Generating Flashcards
+
+<Steps>
+  <Step title="Open Flashcards Tab">
+    Click the **Flashcards** tab in the right sidebar
+  </Step>
+  <Step title="Generate">
+    Click the **"Generate Flashcards"** button
+  </Step>
+  <Step title="Wait for AI">
+    The AI analyzes your document and creates question-answer pairs (this may take 30-60 seconds)
+  </Step>
+  <Step title="Start Studying">
+    Flashcards appear automatically - begin studying right away!
+  </Step>
+</Steps>
+
+<Note>
+  Flashcard generation uses Google's Gemini 2.5 Flash model to create clear, focused questions with accurate answers.
+</Note>
+
+## How Flashcards Are Created
+
+### AI Generation Process
+
+<Accordion title="Step 1: Document Processing">
+  - PDF is loaded and text extracted
+  - Content is split into manageable chunks (1000 characters)
+  - Chunks overlap by 200 characters to maintain context
+</Accordion>
+
+<Accordion title="Step 2: Question Generation">
+  - Each chunk is analyzed by AI
+  - Up to 2 questions created per chunk
+  - Questions are designed to be self-contained
+  - Focuses on key concepts and important information
+</Accordion>
+
+<Accordion title="Step 3: Quality Control">
+  - Questions without clear answers are skipped
+  - Duplicate or similar questions are filtered
+  - Only high-quality Q&A pairs are kept
+</Accordion>
+
+Implementation at `/src/lib/flashcard.ts`.
+
+### Page Limits
+
+<Note>
+  Maximum pages per document for flashcard generation:
+  - **Free plan**: Limited pages
+  - **Paid plans**: Higher limits
+  
+  Check your plan details for specific limits.
+</Note>
+
+## Using Flashcards
+
+### Card Interface
+
+Each flashcard shows:
+
+- **Question side**: The study question
+- **Progress indicator**: "Card X of Y" at top
+- **Answer button**: Reveals the answer
+- **Navigation**: Previous/Next buttons
+
+### Study Flow
+
+<Steps>
+  <Step title="Read Question">
+    The question appears on the card
+  </Step>
+  <Step title="Think">
+    Consider your answer before revealing
+  </Step>
+  <Step title="Show Answer">
+    Click **"Show Answer"** to reveal the correct answer
+  </Step>
+  <Step title="Evaluate Yourself">
+    Choose:
+    - ✅ **Correct** - You got it right
+    - ❌ **Incorrect** - You got it wrong  
+    - ℹ️ **Show Explanation** - Get more context
+  </Step>
+  <Step title="Continue">
+    Move to the next card and repeat
+  </Step>
+</Steps>
+
+### Feedback Options
+
+<AccordionGroup>
+  <Accordion title="✅ Correct">
+    - Marks this attempt as correct
+    - Increments your correct answer count
+    - Tracks performance for future review
+    - Automatically advances to next card
+  </Accordion>
+  
+  <Accordion title="❌ Incorrect">
+    - Marks this attempt as incorrect
+    - Helps identify areas needing more study
+    - Tracks for spaced repetition
+    - Moves to next card
+  </Accordion>
+  
+  <Accordion title="ℹ️ Show Explanation">
+    - Reveals additional context and details
+    - Helps deepen understanding
+    - Useful when answer is partially correct
+    - Learn more about the concept
+  </Accordion>
+</AccordionGroup>
+
+## Performance Tracking
+
+### Attempt History
+
+Each flashcard tracks all your attempts:
+
+```typescript
+{
+  id: string,
+  flashcardId: string,
+  isCorrect: boolean,
+  createdAt: Date
+}
+```
+
+### Viewing Progress
+
+<Note>
+  Detailed analytics and progress visualization are planned for a future release. Currently, attempts are tracked in the background.
+</Note>
+
+### Best Practices for Studying
+
+<Tip>
+  **Space out sessions**: Review flashcards over multiple days rather than cramming in one session.
+</Tip>
+
+<Tip>
+  **Focus on incorrect cards**: Pay extra attention to cards you marked wrong - these indicate knowledge gaps.
+</Tip>
+
+<Tip>
+  **Use explanations**: Don't just memorize answers - understand the concepts behind them.
+</Tip>
+
+<Tip>
+  **Combine with notes**: After studying flashcards, review your notes to reinforce connections.
+</Tip>
+
+## Navigation
+
+### Moving Between Cards
+
+**Forward**:
+- Click the **Next** button
+- Or complete the current card (mark correct/incorrect)
+
+**Backward**:
+- Click the **Previous** button
+- Review previous cards anytime
+
+**Direct navigation**:
+- Use the progress indicator to see position
+- Cards are numbered: "1 of 20", "2 of 20", etc.
+
+### Keyboard Shortcuts
+
+<Note>
+  Keyboard shortcuts for flashcards are planned for a future update to enable faster studying.
+</Note>
+
+## Technical Details
+
+### Component Structure
+
+```typescript
+<Flashcards>
+  {flashcards.length === 0 && <FeatureCard />}
+  {flashcards.length > 0 && (
+    <IndividualFlashcard
+      question={...}
+      answer={...}
+      attempts={...}
+      current={cur}
+      total={length}
+    />
+  )}
+</Flashcards>
+```
+
+Component at `/src/components/flashcard/index.tsx`.
+
+### Individual Card Component
+
+Each card manages:
+- Question/answer visibility state
+- Attempt submission
+- Navigation between cards
+- Performance feedback display
+
+Implemented at `/src/components/flashcard/card.tsx`.
+
+### Generation API
+
+**Endpoint**: tRPC mutation `flashcard.generateFlashcards`
+
+**Process**:
+1. Validates page count against user plan
+2. Fetches PDF from URL
+3. Extracts and chunks text
+4. Generates Q&A pairs with AI
+5. Saves to database
+6. Returns flashcard set
+
+Logic at `/src/lib/flashcard.ts`.
+
+## Customization
+
+<Warning>
+  Flashcard customization features (editing questions, creating custom cards, filtering by topic) are planned for future releases.
+</Warning>
+
+### Current Limitations
+
+- Cannot edit generated questions or answers
+- Cannot manually add custom flashcards
+- Cannot filter by topic or section
+- Cannot export flashcard sets
+- Cannot shuffle card order
+
+## AI Model Details
+
+**Model**: Google Gemini 2.5 Flash
+
+**Prompt**:
+```
+You're using an advanced AI assistant capable of creating 
+flashcards efficiently. Your task is to generate clear and 
+concise question-answer pairs based on provided text. Each 
+question should have a straightforward answer and be 
+self-contained. Limit your questions to a maximum of two 
+per text segment.
+```
+
+**Output Schema**:
+```typescript
+[
+  {
+    question: string,
+    answer: string
+  },
+  ...
+]
+```
+
+## Use Cases
+
+<CardGroup cols={2}>
+  <Card title="Exam Preparation" icon="graduation-cap">
+    Generate flashcards from textbooks and study guides
+  </Card>
+  <Card title="Research Papers" icon="flask">
+    Create Q&A cards to remember key findings and methods
+  </Card>
+  <Card title="Technical Documentation" icon="code">
+    Study APIs, frameworks, and programming concepts
+  </Card>
+  <Card title="Meeting Notes" icon="clipboard">
+    Turn meeting minutes into actionable memory aids
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Generation is taking too long">
+    - Larger documents take more time (30-90 seconds)
+    - Each text chunk requires an AI API call
+    - Check your internet connection
+    - Refresh if stuck for more than 2 minutes
+  </Accordion>
+  
+  <Accordion title="No flashcards were generated">
+    - Document may be too short (needs substantial text)
+    - PDF might be scanned images (use OCR first)
+    - Document may exceed your plan's page limit
+    - Check for error messages
+  </Accordion>
+  
+  <Accordion title="Questions don't make sense">
+    - AI occasionally generates low-quality questions
+    - Source text may be poorly formatted
+    - Technical jargon can confuse the AI
+    - Manual flashcard editing coming soon
+  </Accordion>
+  
+  <Accordion title="Can't mark answer as correct/incorrect">
+    - Ensure you've clicked "Show Answer" first
+    - Check if you have edit permissions on the document
+    - Try refreshing the page
+    - Check browser console for errors
+  </Accordion>
+</AccordionGroup>
+
+## Future Enhancements
+
+<Note>
+  Planned features:
+  - Manual flashcard creation and editing
+  - Spaced repetition algorithm
+  - Progress analytics and charts
+  - Export to Anki/Quizlet
+  - Study session statistics
+  - Filter by topic/difficulty
+  - Shuffle and randomize order
+</Note>
+
+## Related Features
+
+<CardGroup cols={3}>
+  <Card title="Note Taking" icon="note-sticky" href="/features/note-taking">
+    Create study notes alongside flashcards
+  </Card>
+  <Card title="AI Chat" icon="messages" href="/features/ai-chat">
+    Ask AI to explain flashcard concepts
+  </Card>
+  <Card title="Annotations" icon="highlighter" href="/features/annotations">
+    Highlight key passages for flashcard generation
+  </Card>
+</CardGroup>

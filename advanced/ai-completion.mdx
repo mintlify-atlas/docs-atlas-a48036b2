@@ -1,0 +1,398 @@
+---
+title: "AI Text Completion"
+description: "Leverage AI-powered text completion and enhancement features in the Uxie note editor."
+---
+
+Uxie's note editor includes powerful AI capabilities to help you write, edit, and enhance your notes. The AI can improve your writing, fix grammar, summarize content, and generate text based on your prompts.
+
+## Overview
+
+The AI completion system is integrated directly into the BlockNote editor, providing instant text generation and editing assistance without leaving your workspace.
+
+<Note>
+AI features require an active internet connection and work best with documents that have AI vectorization enabled.
+</Note>
+
+## Quick AI Completion
+
+The fastest way to use AI is with the **++** trigger:
+
+<Steps>
+  <Step title="Type ++">
+    At the end of any paragraph, type two plus signs: `++`
+  </Step>
+  <Step title="AI Continues Writing">
+    The AI automatically continues writing based on your context
+  </Step>
+  <Step title="Review Output">
+    The generated text appears inline as it's being written
+  </Step>
+</Steps>
+
+### Example Usage
+
+```markdown
+The key findings from the research paper suggest that
+++
+```
+
+The AI will analyze the last 500 characters of your text and generate a relevant continuation.
+
+### Stopping Generation
+
+<Tabs>
+  <Tab title="Cancel">
+    Press **Esc** to stop generation and remove the generated text
+  </Tab>
+  <Tab title="Undo">
+    Press **Cmd/Ctrl + Z** to undo the AI generation
+  </Tab>
+  <Tab title="Click Away">
+    Click anywhere else in the document to stop and keep the text
+  </Tab>
+</Tabs>
+
+<CodeGroup>
+```tsx editor/index.tsx
+// Quick AI completion trigger
+onChange={async () => {
+  const block = editor.getTextCursorPosition().block;
+  const blockText = (await editor.blocksToMarkdownLossy([block])).trim();
+  
+  const lastTwo = blockText?.slice(-2);
+  if (lastTwo === "++" && !isLoading) {
+    editor.updateBlock(block, {
+      id: block.id,
+      content: blockText?.slice(0, -2),
+    });
+    complete(blockText?.slice(-500) ?? "");
+  }
+}
+```
+</CodeGroup>
+
+## AI Block Menu
+
+For more control over AI actions, use the block menu to access specific AI functions.
+
+### Accessing the AI Menu
+
+<Steps>
+  <Step title="Hover Over Block">
+    Hover your mouse to the left of any paragraph to reveal the drag handle
+  </Step>
+  <Step title="Click Drag Handle">
+    Click the six-dot handle icon
+  </Step>
+  <Step title="Select AI Option">
+    Click "AI" from the dropdown menu
+  </Step>
+</Steps>
+
+This opens the AI popover with pre-built actions and a custom prompt field.
+
+## Pre-built AI Actions
+
+Uxie provides several one-click AI actions optimized for common editing tasks:
+
+<CardGroup cols={2}>
+  <Card title="Improve Writing" icon="pencil">
+    Enhances clarity, flow, and professionalism
+  </Card>
+  <Card title="Fix Spelling & Grammar" icon="spell-check">
+    Corrects errors and improves sentence structure
+  </Card>
+  <Card title="Summarize" icon="compress">
+    Creates a concise summary of the selected text
+  </Card>
+  <Card title="Explain This" icon="lightbulb">
+    Provides a detailed explanation of complex content
+  </Card>
+  <Card title="Find Action Items" icon="list-check">
+    Extracts tasks and action items from text
+  </Card>
+</CardGroup>
+
+### Using Pre-built Actions
+
+1. Select a paragraph using the block menu
+2. Click "AI" to open the popover
+3. Choose one of the pre-built actions
+4. Wait for the AI to generate results
+5. Choose how to apply the results
+
+<Accordion title="Available Pre-built Actions">
+```tsx ai/popover.tsx
+const AI_COMPLETIONS = [
+  {
+    category: "Edit or review selection",
+    items: [
+      "Improve writing",
+      "Fix spelling & grammar",
+      "Summarise",
+      "Explain this",
+      "Find action items",
+    ],
+  },
+];
+```
+</Accordion>
+
+## Custom AI Prompts
+
+For more specific requests, use the custom prompt field in the AI popover.
+
+### Prompt Examples
+
+<Tabs>
+  <Tab title="Writing">
+    - "Make this more formal"
+    - "Rewrite in simple terms"
+    - "Add more details about the methodology"
+    - "Convert to bullet points"
+    - "Write a counter-argument"
+  </Tab>
+  <Tab title="Analysis">
+    - "List the main arguments"
+    - "Compare these two approaches"
+    - "What are the implications?"
+    - "Identify potential biases"
+    - "Generate discussion questions"
+  </Tab>
+  <Tab title="Formatting">
+    - "Format as a table"
+    - "Create a numbered list"
+    - "Add section headings"
+    - "Split into shorter paragraphs"
+    - "Convert to markdown"
+  </Tab>
+</Tabs>
+
+### Custom Prompt Workflow
+
+<Steps>
+  <Step title="Open AI Popover">
+    Access via block menu → AI
+  </Step>
+  <Step title="Type Your Request">
+    Enter a custom prompt in the input field
+  </Step>
+  <Step title="Press Enter">
+    Submit your prompt (or click away to cancel)
+  </Step>
+  <Step title="Review Result">
+    The AI generates a response based on your prompt
+  </Step>
+</Steps>
+
+<Tip>
+Be specific in your prompts. Instead of "improve this", try "make this more academic" or "simplify for a general audience".
+</Tip>
+
+## Applying AI Results
+
+Once the AI generates a response, you have two options for integrating it into your notes:
+
+<Tabs>
+  <Tab title="Replace Selection">
+    Replaces the original block content with the AI-generated text.
+    
+    Use this when:
+    - The AI improved your original text
+    - You want to fix grammar/spelling
+    - The AI version is better than your draft
+  </Tab>
+  <Tab title="Insert Below">
+    Adds the AI-generated text as a new block below the original.
+    
+    Use this when:
+    - You want to keep both versions
+    - The AI generated additional content
+    - You need to compare and choose later
+  </Tab>
+</Tabs>
+
+```tsx ai/popover.tsx
+const AI_OPTIONS_AFTER_COMPLETION = [
+  {
+    title: "Replace selection",
+    onClick: () => {
+      editor.updateBlock(rect.blockId, {
+        content: text,
+      });
+    },
+  },
+  {
+    title: "Insert below",
+    onClick: () => {
+      editor.insertBlocks(
+        [{ content: text, type: "paragraph" }],
+        { id: rect.blockId },
+        "after",
+      );
+    },
+  },
+];
+```
+
+## Iterating on AI Responses
+
+The AI popover supports multiple generations and refinements:
+
+### Multiple Generations
+
+1. After receiving an AI response, type a follow-up prompt
+2. Example: "Make it shorter" or "Add more technical details"
+3. Navigate between different versions using the arrow buttons
+4. Each version is stored until you choose one
+
+### Navigation Controls
+
+<CardGroup cols={3}>
+  <Card title="Previous" icon="arrow-left">
+    View earlier AI generations
+  </Card>
+  <Card title="Counter" icon="list-ol">
+    Shows "X of Y" - current version number
+  </Card>
+  <Card title="Next" icon="arrow-right">
+    View newer AI generations
+  </Card>
+</CardGroup>
+
+<Tip>
+Generate multiple variations before choosing one. This helps you compare different approaches and select the best option.
+</Tip>
+
+## AI Integration with Document Chat
+
+When your PDF has AI vectorization enabled, the AI has access to the entire document context for more relevant responses.
+
+### Document-Aware AI
+
+- **Summarize**: Creates summaries based on the full document
+- **Explain**: Provides context from related sections
+- **Action Items**: Finds tasks across all pages
+- **References**: Can cite specific sections
+
+<Note>
+Vectorization status is shown with a sparkle icon (✨) on your document card in the library. Vectorization happens automatically for documents under your plan's page limit.
+</Note>
+
+## API Integration
+
+Uxie's AI features use the OpenAI API for text generation:
+
+<CodeGroup>
+```tsx api/completion/route.ts
+// AI completion endpoint
+export async function POST(req: Request) {
+  const { prompt } = await req.json();
+  
+  // Streams AI response back to client
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4",
+    messages: [{ role: "user", content: prompt }],
+    stream: true,
+  });
+  
+  return new StreamingTextResponse(completion);
+}
+```
+</CodeGroup>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Writing More Effective Prompts">
+    1. **Be specific**: "Make this more formal" vs "improve this"
+    2. **Provide context**: "Explain for beginners" vs "explain"
+    3. **Set constraints**: "In 2 sentences" or "using simple words"
+    4. **Iterate**: Start broad, then refine with follow-up prompts
+  </Accordion>
+  
+  <Accordion title="When to Use Quick Completion (++)">
+    - Brainstorming and generating ideas
+    - Continuing a thought or argument
+    - Drafting initial content quickly
+    - Overcoming writer's block
+  </Accordion>
+  
+  <Accordion title="When to Use Block Menu AI">
+    - Editing existing content
+    - Applying specific transformations
+    - Creating summaries or analyses
+    - Extracting structured information
+  </Accordion>
+  
+  <Accordion title="Reviewing AI Output">
+    Always review AI-generated content for:
+    - Factual accuracy
+    - Appropriate tone and style
+    - Relevance to your needs
+    - Potential biases or errors
+  </Accordion>
+</AccordionGroup>
+
+## Keyboard Shortcuts
+
+| Action | Shortcut |
+|--------|----------|
+| Quick AI completion | Type `++` |
+| Stop generation | **Esc** |
+| Undo AI generation | **Cmd/Ctrl + Z** |
+| Open block menu | Hover + Click drag handle |
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="AI popover doesn't open">
+    1. Make sure you're clicking the drag handle (six dots) on the left
+    2. Try clicking directly on a paragraph first to focus it
+    3. Refresh the page if the editor is unresponsive
+  </Accordion>
+  
+  <Accordion title="++ trigger not working">
+    - Ensure you type `++` at the end of a line
+    - Wait a moment after typing
+    - Check that you're not in a code block or special formatting
+  </Accordion>
+  
+  <Accordion title="AI generates irrelevant content">
+    - Provide more context in your notes before using AI
+    - Use the custom prompt field with specific instructions
+    - Try regenerating with a different prompt
+  </Accordion>
+  
+  <Accordion title="Generation is slow or fails">
+    - Check your internet connection
+    - The first generation may take longer
+    - Try again if you see an error message
+  </Accordion>
+</AccordionGroup>
+
+## Limitations
+
+<Warning>
+**AI Generation Limits**
+
+- AI features require an active internet connection
+- Generation may fail during high server load
+- Quality depends on the clarity of your input
+- AI should augment, not replace, your own writing
+- Always fact-check AI-generated content
+</Warning>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Chat with PDF" icon="comments" href="/features/ai-chat">
+    Ask questions about your document with AI chat
+  </Card>
+  <Card title="Note-Taking" icon="note" href="/features/note-taking">
+    Learn more about the BlockNote editor
+  </Card>
+  <Card title="Document Management" icon="folder" href="/advanced/document-management">
+    Organize your vectorized documents
+  </Card>
+</CardGroup>

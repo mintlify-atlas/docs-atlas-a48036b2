@@ -1,0 +1,338 @@
+---
+title: Note Taking
+description: Rich text editor with AI assistance, automatic saving, and seamless integration with PDF highlights
+---
+
+## Overview
+
+Uxie's note editor provides a powerful, distraction-free environment for taking notes alongside your PDF documents. Built on BlockNote, it offers rich formatting, AI-powered writing assistance, and automatic syncing of highlights from your PDF.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Rich Text Editing" icon="pen-fancy">
+    Full formatting support including bold, italic, underline, colors, and more
+  </Card>
+  <Card title="AI Writing Assistant" icon="sparkles">
+    Get AI help to improve, summarize, or expand your writing
+  </Card>
+  <Card title="Auto-Save" icon="floppy-disk">
+    Your notes are automatically saved as you type
+  </Card>
+  <Card title="Highlight Integration" icon="link">
+    PDF highlights automatically appear in your notes
+  </Card>
+</CardGroup>
+
+## Getting Started
+
+### Opening the Editor
+
+The note editor is always visible alongside your PDF:
+
+1. Open any document in Uxie
+2. The editor appears in the right panel
+3. Start typing immediately - no save button needed
+
+<Note>
+  Notes auto-save every 2 seconds after you stop typing. You'll never lose your work.
+</Note>
+
+## Formatting Options
+
+### Text Formatting
+
+Select text to reveal the formatting toolbar:
+
+<Accordion title="Text Styles">
+  - **Bold** - Ctrl/Cmd + B
+  - **Italic** - Ctrl/Cmd + I  
+  - **Underline** - Ctrl/Cmd + U
+  - **Strikethrough**
+  - **Inline code** - Ctrl/Cmd + E
+</Accordion>
+
+<Accordion title="Block Types">
+  Use the block type dropdown to change any line to:
+  - Paragraph (default)
+  - Headings (H1, H2, H3)
+  - Bullet list
+  - Numbered list
+  - Checklist
+  - Code block
+  - Quote
+</Accordion>
+
+<Accordion title="Alignment">
+  - Left align
+  - Center align
+  - Right align
+</Accordion>
+
+<Accordion title="Colors">
+  - Text color picker
+  - Background color picker
+  - Multiple preset colors
+</Accordion>
+
+### Slash Commands
+
+Type `/` to open the command menu and quickly insert:
+
+- Different block types (headings, lists, quotes)
+- Media (images, files)
+- Advanced blocks (tables, code blocks)
+
+<Tip>
+  The slash menu is searchable - just keep typing after `/` to filter options.
+</Tip>
+
+## AI Writing Features
+
+### AI Assistant Popover
+
+Get AI help with any block in your notes:
+
+<Steps>
+  <Step title="Open Block Menu">
+    Click the drag handle (⋮⋮) on the left of any block
+  </Step>
+  <Step title="Select AI">
+    Click the **AI** option from the menu
+  </Step>
+  <Step title="Choose Action">
+    Select from AI commands:
+    - **Improve writing**: Enhance clarity and style
+    - **Fix spelling & grammar**: Correct errors
+    - **Summarise**: Create a concise version
+    - **Explain this**: Get a simpler explanation
+    - **Find action items**: Extract tasks and to-dos
+  </Step>
+  <Step title="Apply">
+    The AI generates suggestions - click to apply them
+  </Step>
+</Steps>
+
+Implemented at `/src/components/editor/custom/ai/popover.tsx`.
+
+### AI Text Completion
+
+Use `++` to trigger AI text continuation:
+
+1. Type your text normally
+2. Type `++` at the end of any line
+3. The AI automatically continues writing based on context
+4. Press **Escape** to cancel or **Ctrl/Cmd + Z** to undo
+
+<Tip>
+  AI completion uses the last 500 characters of context to generate relevant continuations.
+</Tip>
+
+<Note>
+  AI features are powered by Google's Gemini 2.5 Flash model for fast, high-quality responses.
+</Note>
+
+## Working with Highlights
+
+### Understanding Highlight Blocks
+
+When you highlight text or images in your PDF, they appear as special blocks in your notes:
+
+**Text highlights**:
+- Yellow vertical bar on the left
+- Contains the original highlighted text
+- Clickable to jump to the PDF source
+
+**Image highlights**:
+- Appear as image blocks
+- Show the captured area from the PDF
+- Can be captioned and resized
+
+### Navigating Between Notes and PDF
+
+<Steps>
+  <Step title="From Notes to PDF">
+    Click the yellow bar on any highlight block to jump to that exact location in the PDF
+  </Step>
+  <Step title="From PDF to Notes">
+    Create a highlight in the PDF - it automatically appears at the bottom of your notes
+  </Step>
+</Steps>
+
+This bidirectional linking keeps your notes and source material perfectly synchronized.
+
+## Editor Controls
+
+### Drag Handle Menu
+
+Click the drag handle (⋮⋮) on any block to:
+
+- **AI**: Open AI assistant
+- **Delete**: Remove the block
+- **Colors**: Change text/background colors
+- **Drag**: Reorder blocks
+
+### Block Organization
+
+- **Drag blocks**: Click and drag the handle to reorder
+- **Indent/outdent**: Create nested structure (for lists)
+- **Delete**: Select block and press Delete or Backspace
+
+## Collaborative Editing
+
+### Permissions
+
+| Role | Read Notes | Edit Notes |
+|------|-----------|------------|
+| Owner | ✓ | ✓ |
+| Editor | ✓ | ✓ |
+| Viewer | ✓ | ✗ |
+
+<Note>
+  Viewers see notes in read-only mode. They cannot edit, add, or delete content.
+</Note>
+
+### Real-Time Collaboration
+
+<Warning>
+  Real-time collaborative editing is currently in development. For now, changes are synced when you reload the page. See `/src/components/editor/collaboration-client.tsx` for the upcoming implementation.
+</Warning>
+
+## Links and References
+
+### Creating Links
+
+<Steps>
+  <Step title="Select Text">
+    Highlight the text you want to turn into a link
+  </Step>
+  <Step title="Click Link Button">
+    Click the link icon in the formatting toolbar
+  </Step>
+  <Step title="Enter URL">
+    Type or paste the URL
+  </Step>
+  <Step title="Confirm">
+    Press Enter to create the link
+  </Step>
+</Steps>
+
+### Image Captions
+
+Add context to images:
+
+1. Click on any image block
+2. Select the **image caption** button
+3. Type your caption below the image
+
+## Auto-Save Behavior
+
+<Accordion title="How Auto-Save Works">
+  - Saves 2 seconds after you stop typing
+  - Saves are debounced to prevent excessive server calls
+  - Changes are stored in JSON format
+  - No manual save button needed
+  - Implementation at `/src/components/editor/index.tsx:100`
+</Accordion>
+
+<Accordion title="Save Indicators">
+  Currently, there's no visual save indicator. All changes are automatically persisted. A save status indicator is planned for a future update.
+</Accordion>
+
+## Technical Details
+
+### Implementation
+
+The editor is built with:
+
+- **BlockNote**: Core rich text editor framework
+- **React**: UI components and state management
+- **TipTap**: Underlying editor engine
+- **Custom blocks**: Highlight blocks for PDF integration
+
+### Editor Schema
+
+Custom blocks include:
+
+```typescript
+{
+  highlight: HighlightBlock,  // PDF highlight references
+  image: ImageBlock,           // Uploaded images
+  paragraph: ParagraphBlock,   // Standard text
+  // ... other standard BlockNote blocks
+}
+```
+
+Defined at `/src/lib/editor-utils.ts:1`.
+
+### Data Format
+
+Notes are stored as JSON in BlockNote format:
+
+```json
+[
+  {
+    "type": "paragraph",
+    "content": "Your text here"
+  },
+  {
+    "type": "highlight",
+    "content": "Highlighted text",
+    "props": {
+      "highlightId": "abc123"
+    }
+  }
+]
+```
+
+## Keyboard Shortcuts
+
+| Action | Shortcut |
+|--------|----------|
+| Bold | **Ctrl/Cmd + B** |
+| Italic | **Ctrl/Cmd + I** |
+| Underline | **Ctrl/Cmd + U** |
+| Inline code | **Ctrl/Cmd + E** |
+| Open slash menu | **/** |
+| AI completion | **++** |
+| Undo | **Ctrl/Cmd + Z** |
+| Redo | **Ctrl/Cmd + Shift + Z** |
+| Cancel AI generation | **Escape** |
+
+## Best Practices
+
+<Tip>
+  **Structure your notes**: Use headings to organize different sections or topics within a document.
+</Tip>
+
+<Tip>
+  **Combine highlights and text**: After adding highlights, write your own thoughts and connections to deepen understanding.
+</Tip>
+
+<Tip>
+  **Use AI strategically**: The AI assistant is great for fixing grammar or finding action items, but your own thinking is more valuable for learning.
+</Tip>
+
+<Tip>
+  **Click yellow bars**: Navigate back to source material frequently to maintain context.
+</Tip>
+
+## Export Options
+
+<Note>
+  Note export functionality is planned for a future release. Currently, you can copy and paste content from the editor.
+</Note>
+
+## Related Features
+
+<CardGroup cols={3}>
+  <Card title="Annotations" icon="highlighter" href="/features/annotations">
+    Create highlights that sync to notes
+  </Card>
+  <Card title="AI Chat" icon="messages" href="/features/ai-chat">
+    Ask questions to enhance your notes
+  </Card>
+  <Card title="Collaboration" icon="users" href="/features/collaboration">
+    Share and collaborate on documents
+  </Card>
+</CardGroup>

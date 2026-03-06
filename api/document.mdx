@@ -1,0 +1,433 @@
+---
+title: Document API
+description: Manage documents, collaborators, notes, and document vectorization
+---
+
+## Overview
+
+The Document API provides endpoints for managing PDF documents, including retrieval, collaboration, vectorization, and metadata updates.
+
+## Procedures
+
+### getDocData
+
+Retrieves comprehensive data for a document including highlights, collaborators, messages, and user permissions.
+
+<ParamField path="docId" type="string" required>
+  The unique identifier of the document
+</ParamField>
+
+**Returns:**
+
+<ResponseField name="id" type="string">
+  Document unique identifier
+</ResponseField>
+
+<ResponseField name="title" type="string">
+  Document title
+</ResponseField>
+
+<ResponseField name="url" type="string">
+  URL to the PDF file
+</ResponseField>
+
+<ResponseField name="pageCount" type="number">
+  Total number of pages in the document
+</ResponseField>
+
+<ResponseField name="lastReadPage" type="number">
+  Last page the user was reading
+</ResponseField>
+
+<ResponseField name="note" type="string | null">
+  User's notes for the document
+</ResponseField>
+
+<ResponseField name="isVectorised" type="boolean">
+  Whether the document has been vectorized for AI chat
+</ResponseField>
+
+<ResponseField name="highlights" type="Highlight[]">
+  Array of highlights with position data
+</ResponseField>
+
+<ResponseField name="owner" type="User">
+  Document owner information
+</ResponseField>
+
+<ResponseField name="collaborators" type="Collaborator[]">
+  Array of collaborators with roles
+</ResponseField>
+
+<ResponseField name="messages" type="Message[]">
+  Chat messages about the document
+</ResponseField>
+
+<ResponseField name="userPermissions" type="object">
+  User's permissions for this document
+  
+  <Expandable title="properties">
+    <ResponseField name="canEdit" type="boolean">
+      Whether the user can edit the document
+    </ResponseField>
+    
+    <ResponseField name="isOwner" type="boolean">
+      Whether the user is the document owner
+    </ResponseField>
+    
+    <ResponseField name="username" type="string">
+      The user's display name
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+**Example:**
+
+<CodeGroup>
+```typescript React Component
+import { api } from "@/lib/api";
+
+function DocumentViewer({ docId }: { docId: string }) {
+  const { data, isLoading } = api.document.getDocData.useQuery({ docId });
+  
+  if (isLoading) return <div>Loading...</div>;
+  
+  return (
+    <div>
+      <h1>{data.title}</h1>
+      <p>Pages: {data.pageCount}</p>
+      <p>Can edit: {data.userPermissions.canEdit ? "Yes" : "No"}</p>
+      {data.highlights.map(h => (
+        <div key={h.id}>Highlight on page {h.position.pageNumber}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+```typescript Response
+{
+  id: "clx123abc",
+  title: "Introduction to Machine Learning",
+  url: "https://storage.example.com/doc.pdf",
+  pageCount: 42,
+  lastReadPage: 15,
+  note: "Important concepts in chapter 3",
+  isVectorised: true,
+  highlights: [
+    {
+      id: "h1",
+      position: {
+        pageNumber: 5,
+        boundingRect: { x1: 100, y1: 200, x2: 400, y2: 220, width: 300, height: 20 },
+        rects: [/* ... */]
+      }
+    }
+  ],
+  owner: { id: "user1", name: "John Doe", email: "john@example.com" },
+  collaborators: [],
+  messages: [],
+  userPermissions: {
+    canEdit: true,
+    isOwner: true,
+    username: "John Doe"
+  }
+}
+```
+</CodeGroup>
+
+---
+
+### addCollaborator
+
+Add a collaborator to a document (owner only).
+
+<ParamField path="documentId" type="string" required>
+  The document ID to add a collaborator to
+</ParamField>
+
+<ParamField path="data.email" type="string" required>
+  Email address of the user to add as collaborator
+</ParamField>
+
+<ParamField path="data.role" type="CollaboratorRole" required>
+  The role to assign: `EDITOR`, `VIEWER`, or `OWNER`
+</ParamField>
+
+**Example:**
+
+```typescript
+const mutation = api.document.addCollaborator.useMutation();
+
+mutation.mutate({
+  documentId: "clx123abc",
+  data: {
+    email: "collaborator@example.com",
+    role: "EDITOR"
+  }
+});
+```
+
+---
+
+### removeCollaboratorById
+
+Remove a collaborator from a document (owner only).
+
+<ParamField path="documentId" type="string" required>
+  The document ID
+</ParamField>
+
+<ParamField path="userId" type="string" required>
+  The user ID of the collaborator to remove
+</ParamField>
+
+**Example:**
+
+```typescript
+const mutation = api.document.removeCollaboratorById.useMutation();
+
+mutation.mutate({
+  documentId: "clx123abc",
+  userId: "user123"
+});
+```
+
+---
+
+### getCollaborators
+
+Get all collaborators for a document (owner only).
+
+<ParamField path="documentId" type="string" required>
+  The document ID
+</ParamField>
+
+**Returns:** Array of collaborators including the owner
+
+<ResponseField name="[]" type="Collaborator[]">
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      User ID
+    </ResponseField>
+    
+    <ResponseField name="email" type="string">
+      User email address
+    </ResponseField>
+    
+    <ResponseField name="role" type="CollaboratorRole">
+      User's role: `OWNER`, `EDITOR`, or `VIEWER`
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+**Example:**
+
+```typescript
+const { data } = api.document.getCollaborators.useQuery({ 
+  documentId: "clx123abc" 
+});
+
+// Returns:
+// [
+//   { id: "user1", email: "owner@example.com", role: "OWNER" },
+//   { id: "user2", email: "editor@example.com", role: "EDITOR" }
+// ]
+```
+
+---
+
+### vectorise
+
+Vectorize a document to enable AI chat functionality. This processes the document and creates embeddings for semantic search.
+
+<ParamField path="documentId" type="string" required>
+  The document ID to vectorize
+</ParamField>
+
+<Note>
+Vectorization is limited by the user's plan:
+- FREE: Up to a certain number of pages per document
+- FREE_PLUS: More pages allowed
+- PRO: Maximum pages allowed
+</Note>
+
+**Example:**
+
+```typescript
+const mutation = api.document.vectorise.useMutation({
+  onSuccess: () => {
+    console.log("Document vectorized successfully");
+  },
+  onError: (error) => {
+    if (error.message.includes("already vectorised")) {
+      console.log("Document was already vectorized");
+    }
+  }
+});
+
+mutation.mutate({ documentId: "clx123abc" });
+```
+
+---
+
+### addDocumentByLink
+
+Add a document to the user's library by providing a PDF URL.
+
+<ParamField path="url" type="string" required>
+  Public URL to the PDF file
+</ParamField>
+
+<ParamField path="title" type="string" required>
+  Title for the document
+</ParamField>
+
+**Returns:** The created document object
+
+<Warning>
+This endpoint validates:
+- User has not exceeded their plan's document limit
+- URL returns a valid PDF file
+- PDF can be loaded successfully
+</Warning>
+
+**Example:**
+
+```typescript
+const mutation = api.document.addDocumentByLink.useMutation();
+
+mutation.mutate({
+  url: "https://example.com/paper.pdf",
+  title: "Research Paper"
+});
+```
+
+---
+
+### updateNotes
+
+Update personal notes for a document (owner only).
+
+<ParamField path="documentId" type="string" required>
+  The document ID
+</ParamField>
+
+<ParamField path="note" type="string" required>
+  The note content (can be empty string)
+</ParamField>
+
+**Example:**
+
+```typescript
+const mutation = api.document.updateNotes.useMutation();
+
+mutation.mutate({
+  documentId: "clx123abc",
+  note: "Key insights from chapter 3..."
+});
+```
+
+---
+
+### updateLastReadPage
+
+Update the last page the user was reading (owner only).
+
+<ParamField path="docId" type="string" required>
+  The document ID
+</ParamField>
+
+<ParamField path="lastReadPage" type="number" required>
+  The page number (1-indexed)
+</ParamField>
+
+**Example:**
+
+```typescript
+const mutation = api.document.updateLastReadPage.useMutation();
+
+// Update reading progress
+mutation.mutate({
+  docId: "clx123abc",
+  lastReadPage: 42
+});
+```
+
+---
+
+### updateTitle
+
+Update a document's title. Available to owners and editors.
+
+<ParamField path="docId" type="string" required>
+  The document ID
+</ParamField>
+
+<ParamField path="title" type="string" required>
+  New title (1-255 characters)
+</ParamField>
+
+**Example:**
+
+```typescript
+const mutation = api.document.updateTitle.useMutation();
+
+mutation.mutate({
+  docId: "clx123abc",
+  title: "Updated Document Title"
+});
+```
+
+## Data Models
+
+### CollaboratorRole Enum
+
+```typescript
+enum CollaboratorRole {
+  EDITOR = "EDITOR",   // Can edit, highlight, and chat
+  VIEWER = "VIEWER",   // Can only view
+  OWNER = "OWNER"      // Full control (assigned automatically)
+}
+```
+
+### Document Schema
+
+```typescript
+interface Document {
+  id: string;
+  url: string;
+  title: string;
+  ownerId: string;
+  note: string | null;
+  isVectorised: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  pageCount: number;
+  isUploaded: boolean;
+  lastReadPage: number;
+  coverImageUrl: string;
+  summary: string | null;
+}
+```
+
+## Error Handling
+
+Common errors:
+
+- `UNAUTHORIZED` - User is not authenticated or doesn't have permission
+- `NOT_FOUND` - Document or user not found
+- `BAD_REQUEST` - Invalid input, document limit reached, or already vectorized
+- `INTERNAL_SERVER_ERROR` - Server error during processing
+
+```typescript
+const mutation = api.document.addCollaborator.useMutation({
+  onError: (error) => {
+    if (error.data?.code === "UNAUTHORIZED") {
+      toast.error("You must be the document owner");
+    } else if (error.data?.code === "NOT_FOUND") {
+      toast.error("User not found");
+    }
+  }
+});
+```

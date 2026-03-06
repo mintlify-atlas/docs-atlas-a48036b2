@@ -1,0 +1,256 @@
+---
+title: Annotations & Highlighting
+description: Highlight text and images in your PDFs, sync highlights to your notes, and organize your thoughts
+---
+
+## Overview
+
+Uxie's annotation system allows you to highlight text and capture images from your PDFs, automatically syncing them to your notes for easy reference and organization. Every highlight is preserved and can be jumped to instantly from your notes.
+
+## Annotation Types
+
+<CardGroup cols={2}>
+  <Card title="Text Highlights" icon="highlighter">
+    Select and highlight any text in your PDF with click-to-navigate functionality
+  </Card>
+  <Card title="Area Highlights" icon="crop">
+    Capture images or diagrams by selecting rectangular areas (hold Alt key)
+  </Card>
+</CardGroup>
+
+## Creating Highlights
+
+### Text Highlighting
+
+<Steps>
+  <Step title="Select Text">
+    Click and drag to select any text in your PDF document
+  </Step>
+  <Step title="Choose Action">
+    A popover menu appears with options:
+    - **Highlight** icon: Save the selection
+    - **Copy** icon: Copy text to clipboard
+    - **Read** icon: Start text-to-speech
+    - **Explain** icon: Ask AI to explain (if document is vectorized)
+    - **Summarize** icon: Get AI summary (if document is vectorized)
+  </Step>
+  <Step title="Highlight">
+    Click the highlight icon to save the selection
+  </Step>
+  <Step title="Auto-Sync">
+    The highlighted text is automatically added to your notes with a yellow indicator
+  </Step>
+</Steps>
+
+<Note>
+  Text highlights are created at `/src/components/pdf-reader/index.tsx:192` and synced to notes at line 18-99.
+</Note>
+
+### Area/Image Highlighting
+
+Capture images, diagrams, charts, or any visual content:
+
+<Steps>
+  <Step title="Hold Alt Key">
+    Press and hold the **Alt** key on your keyboard
+  </Step>
+  <Step title="Draw Rectangle">
+    Click and drag to draw a rectangle around the area you want to capture
+  </Step>
+  <Step title="Release to Capture">
+    Release the mouse to capture the area as an image
+  </Step>
+  <Step title="Auto-Insert">
+    The image is automatically uploaded and inserted into your notes
+  </Step>
+</Steps>
+
+<Tip>
+  Area highlights are perfect for capturing equations, diagrams, charts, or any visual elements you want to reference later.
+</Tip>
+
+## Working with Highlights
+
+### Navigating to Highlights
+
+From your notes:
+
+1. Find any highlighted text block (marked with a yellow bar on the left)
+2. **Click the yellow indicator**
+3. The PDF viewer automatically scrolls to that exact highlight
+
+This creates a seamless connection between your notes and the source material.
+
+### Deleting Highlights
+
+<Steps>
+  <Step title="Hover Over Highlight">
+    Move your mouse over any highlight in the PDF viewer
+  </Step>
+  <Step title="Show Menu">
+    A small popover menu appears
+  </Step>
+  <Step title="Delete">
+    Click the trash icon to remove the highlight
+  </Step>
+</Steps>
+
+<Warning>
+  Deleting a highlight from the PDF removes it from both the document and your notes. This action cannot be undone.
+</Warning>
+
+### Editing Area Highlights
+
+Area highlights (images) can be resized:
+
+1. Click and hold on the highlight border
+2. Drag to resize the captured area
+3. Release to save the new size
+4. The change is automatically saved to the database
+
+This is implemented at `/src/components/pdf-reader/pdf-highlighter.tsx:244`.
+
+## Highlight Popover Actions
+
+### Text Selection Menu
+
+When you select text, you get quick access to:
+
+<Accordion title="Copy to Clipboard">
+  Instantly copy selected text to your clipboard for pasting elsewhere. No need to open context menus.
+</Accordion>
+
+<Accordion title="Read Aloud">
+  Start text-to-speech from the selected text. The reader will begin from that exact position, perfect for following along as you read.
+</Accordion>
+
+<Accordion title="Explain (AI)">
+  Available when your document is vectorized. Asks the AI assistant to explain the selected text in simple terms. The explanation appears in the chat panel.
+</Accordion>
+
+<Accordion title="Summarize (AI)">
+  Available when your document is vectorized. Generates a concise summary of the selected text using AI. Results appear in the chat panel.
+</Accordion>
+
+## Notes Integration
+
+### Automatic Syncing
+
+When you create a highlight:
+
+1. **Text highlights** are inserted as special highlight blocks with the original text
+2. **Image highlights** are uploaded and inserted as image blocks
+3. Both types include a reference ID linking back to the PDF position
+4. Highlights appear at the end of your current notes
+
+### Highlight Block Features
+
+In your notes, highlight blocks:
+
+- Display a **yellow vertical bar** on the left side
+- Show the original highlighted text
+- Are **clickable** - jumping to the source location in the PDF
+- Can be edited, moved, or deleted like any note block
+- Export correctly when you export your notes
+
+The highlight block implementation is at `/src/components/editor/custom/highlight.tsx`.
+
+## Permissions
+
+<Note>
+  Only document **owners** and **editors** can create, modify, or delete highlights. Viewers can see highlights but cannot interact with them.
+</Note>
+
+### Permission Levels
+
+| Role | View Highlights | Create Highlights | Delete Highlights |
+|------|----------------|-------------------|-------------------|
+| Owner | ✓ | ✓ | ✓ |
+| Editor | ✓ | ✓ | ✓ |
+| Viewer | ✓ | ✗ | ✗ |
+
+## Technical Details
+
+### Implementation
+
+The annotation system uses:
+
+- **react-pdf-highlighter**: Core highlighting functionality
+- **Position storage**: Bounding rectangles and page numbers stored in database
+- **Optimistic updates**: Immediate UI feedback with server sync
+- **Real-time sync**: Changes propagate to notes instantly
+
+### Data Structure
+
+Each highlight stores:
+
+```typescript
+{
+  id: string,
+  type: 'TEXT' | 'IMAGE',
+  documentId: string,
+  position: {
+    boundingRect: { x, y, width, height, pageNumber },
+    rects: [...], // For text highlights
+    pageNumber: number
+  }
+}
+```
+
+### Performance
+
+- Highlights are rendered on-demand as pages load
+- Optimistic updates provide instant feedback
+- Database syncing happens in the background
+- Image uploads use efficient compression
+
+## AI-Enhanced Features
+
+<CardGroup cols={2}>
+  <Card title="Explain Text" icon="lightbulb">
+    Get AI-powered explanations of complex passages
+  </Card>
+  <Card title="Summarize" icon="book-open">
+    Generate concise summaries of selected text
+  </Card>
+</CardGroup>
+
+<Note>
+  AI features require your document to be vectorized first. Click "Turn PDF Interactive" in the Chat tab to enable AI features.
+</Note>
+
+## Keyboard Shortcuts
+
+| Action | Shortcut |
+|--------|----------|
+| Area highlight mode | Hold **Alt** while selecting |
+| Deselect text | **Escape** |
+| Copy selected text | **Ctrl/Cmd + C** (after selection) |
+
+## Best Practices
+
+<Tip>
+  **Organize as you go**: Highlight important passages while reading, then organize your notes afterward. This creates a natural workflow from reading to understanding.
+</Tip>
+
+<Tip>
+  **Use area highlights for visuals**: Charts, equations, diagrams, and tables are often easier to understand as images rather than extracted text.
+</Tip>
+
+<Tip>
+  **Combine with AI**: After highlighting key sections, use the AI chat to ask follow-up questions about the highlighted material.
+</Tip>
+
+## Related Features
+
+<CardGroup cols={3}>
+  <Card title="Note Taking" icon="note-sticky" href="/features/note-taking">
+    Organize highlights in your notes
+  </Card>
+  <Card title="AI Chat" icon="messages" href="/features/ai-chat">
+    Ask questions about highlights
+  </Card>
+  <Card title="Text-to-Speech" icon="volume" href="/features/text-to-speech">
+    Listen to highlighted text
+  </Card>
+</CardGroup>

@@ -1,0 +1,479 @@
+---
+title: Collaboration
+description: Share documents with team members, manage permissions, and collaborate in real-time
+---
+
+## Overview
+
+Uxie's collaboration features enable you to share documents with teammates, assign different permission levels, and work together on PDFs and notes. Invite collaborators via email and control exactly what they can do.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Email Invitations" icon="envelope">
+    Invite collaborators by email address
+  </Card>
+  <Card title="Role-Based Access" icon="shield">
+    Assign Viewer, Editor, or Owner permissions
+  </Card>
+  <Card title="Team Management" icon="users">
+    View and manage all collaborators in one place
+  </Card>
+  <Card title="Instant Access" icon="bolt">
+    Collaborators get immediate access after invitation
+  </Card>
+</CardGroup>
+
+## Collaboration Roles
+
+### Permission Levels
+
+Uxie has three permission levels:
+
+<Accordion title="Owner">
+  **Full control** over the document
+  
+  Can:
+  - Read and edit document
+  - Create and delete highlights
+  - Edit notes
+  - Use all features (TTS, AI Chat, Flashcards)
+  - Invite collaborators
+  - Remove collaborators
+  - Change collaborator roles
+  - Delete the document
+  
+  Cannot:
+  - Be removed (permanent owner)
+  - Transfer ownership (not yet supported)
+</Accordion>
+
+<Accordion title="Editor">
+  **Read and edit access**
+  
+  Can:
+  - Read document
+  - Create and delete highlights
+  - Edit notes
+  - Use all features (TTS, AI Chat, Flashcards)
+  - View collaborators list
+  
+  Cannot:
+  - Invite new collaborators
+  - Remove other collaborators
+  - Change permissions
+  - Delete the document
+</Accordion>
+
+<Accordion title="Viewer">
+  **Read-only access**
+  
+  Can:
+  - Read document
+  - View highlights
+  - View notes (read-only)
+  - Use text-to-speech
+  - Use AI Chat
+  - Generate and study flashcards
+  - View collaborators list
+  
+  Cannot:
+  - Create or delete highlights
+  - Edit notes
+  - Invite collaborators
+  - Change any settings
+</Accordion>
+
+### Permission Comparison
+
+| Feature | Owner | Editor | Viewer |
+|---------|-------|--------|--------|
+| Read document | ✓ | ✓ | ✓ |
+| Edit title | ✓ | ✓ | ✗ |
+| Create highlights | ✓ | ✓ | ✗ |
+| Delete highlights | ✓ | ✓ | ✗ |
+| Edit notes | ✓ | ✓ | ✗ |
+| Use TTS | ✓ | ✓ | ✓ |
+| Use AI Chat | ✓ | ✓ | ✓ |
+| Generate flashcards | ✓ | ✓ | ✓ |
+| Study flashcards | ✓ | ✓ | ✓ |
+| Invite collaborators | ✓ | ✗ | ✗ |
+| Remove collaborators | ✓ | ✗ | ✗ |
+| Delete document | ✓ | ✗ | ✗ |
+
+## Inviting Collaborators
+
+### How to Invite
+
+<Steps>
+  <Step title="Open Document">
+    Navigate to the document you want to share
+  </Step>
+  <Step title="Click Team Button">
+    Click the **user plus icon** in the top toolbar
+  </Step>
+  <Step title="Enter Email">
+    Type the collaborator's email address
+  </Step>
+  <Step title="Choose Role">
+    Select **Viewer** or **Editor** from the dropdown
+  </Step>
+  <Step title="Send Invitation">
+    Click **Invite** to send the invitation
+  </Step>
+  <Step title="Confirmation">
+    The collaborator appears immediately in the team list
+  </Step>
+</Steps>
+
+<Note>
+  The email address must belong to an existing Uxie user. Users need to create an account before they can be invited.
+</Note>
+
+### Invitation Interface
+
+The team modal includes:
+
+```tsx
+<Dialog>
+  <DialogTrigger>
+    <UserPlus />  // Team button
+  </DialogTrigger>
+  <DialogContent>
+    <Input placeholder="Email" />
+    <Select>  // Role selector
+      <SelectItem value="VIEWER">Viewer</SelectItem>
+      <SelectItem value="EDITOR">Editor</SelectItem>
+    </Select>
+    <Button>Invite</Button>
+  </DialogContent>
+</Dialog>
+```
+
+Implemented at `/src/components/workspace/invite-collab-modal.tsx`.
+
+## Managing Collaborators
+
+### Viewing Team Members
+
+<Steps>
+  <Step title="Open Team Modal">
+    Click the user plus icon in the document toolbar
+  </Step>
+  <Step title="View List">
+    See all collaborators in the "Team members" section
+  </Step>
+  <Step title="Check Roles">
+    Each member shows their email and role badge
+  </Step>
+</Steps>
+
+### Removing Collaborators
+
+As an owner:
+
+1. Open the Team modal
+2. Find the collaborator to remove
+3. Click the **trash icon** next to their name
+4. They immediately lose access to the document
+
+<Warning>
+  Removing a collaborator is immediate and cannot be undone. They will need to be re-invited to regain access.
+</Warning>
+
+<Note>
+  The owner cannot be removed. The trash icon is hidden for owner entries.
+</Note>
+
+### Changing Roles
+
+<Warning>
+  Role changing is not yet supported. To change someone's role, remove them and re-invite with the new role.
+</Warning>
+
+## Access Control
+
+### Permission Checks
+
+Uxie enforces permissions at multiple levels:
+
+**UI Level**:
+- Edit buttons hidden for viewers
+- Highlight popover doesn't appear for viewers
+- Notes editor shows as read-only
+
+**API Level**:
+- Server validates permissions before mutations
+- Database queries filter by user access
+- Unauthorized requests return errors
+
+### How Permissions Are Checked
+
+```typescript
+const doc = await prisma.document.findFirst({
+  where: {
+    id: docId,
+    OR: [
+      { ownerId: session.user.id },
+      {
+        collaborators: {
+          some: {
+            userId: session.user.id,
+            role: { in: ['EDITOR', 'VIEWER'] }
+          }
+        }
+      }
+    ]
+  }
+});
+```
+
+From `/src/app/api/chat/route.ts:48`.
+
+## Real-Time Collaboration
+
+### Current Status
+
+<Warning>
+  Real-time collaborative editing is currently **in development**. Changes made by collaborators will appear when you refresh the page.
+</Warning>
+
+### Planned Features
+
+<Note>
+  Upcoming real-time features:
+  - Live cursor positions
+  - Real-time note editing
+  - Instant highlight sync
+  - Presence indicators (who's viewing)
+  - Activity feed
+  - Comment threads
+  - Version history
+</Note>
+
+### Technical Foundation
+
+Collaboration infrastructure is being built with:
+
+- **Liveblocks**: Real-time sync platform
+- **Y.js**: Conflict-free collaborative data structures
+- **WebSockets**: Live updates
+
+Foundation code at `/src/components/editor/collaboration-client.tsx`.
+
+## Team Workflow
+
+### Typical Collaboration Patterns
+
+<AccordionGroup>
+  <Accordion title="Research Teams">
+    - Owner uploads paper
+    - Invites team as Editors
+    - Everyone highlights key sections
+    - Notes are collaboratively built
+    - AI Chat used for clarifications
+  </Accordion>
+  
+  <Accordion title="Study Groups">
+    - One member uploads textbook chapter
+    - Invites group as Editors
+    - Each person highlights their sections
+    - Shared flashcards generated
+    - Group studies together
+  </Accordion>
+  
+  <Accordion title="Document Review">
+    - Owner uploads document for review
+    - Invites reviewers as Editors
+    - Reviewers add highlights and notes
+    - Owner consolidates feedback
+    - Document revised based on notes
+  </Accordion>
+  
+  <Accordion title="Teaching">
+    - Teacher uploads course material
+    - Students invited as Viewers
+    - Students can read and use TTS
+    - Students generate their own flashcards
+    - Cannot modify teacher's annotations
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<Tip>
+  **Choose roles carefully**: Give Editor access only to those who need to annotate. Use Viewer for broader sharing.
+</Tip>
+
+<Tip>
+  **Communicate expectations**: Let collaborators know what you need from them (e.g., "Please highlight key findings").
+</Tip>
+
+<Tip>
+  **Review changes regularly**: As owner, periodically review highlights and notes added by editors.
+</Tip>
+
+<Tip>
+  **Use AI Chat for questions**: Instead of cluttering notes with questions, use the AI Chat feature.
+</Tip>
+
+<Tip>
+  **Separate personal notes**: Create a personal copy if you want private notes alongside shared collaboration.
+</Tip>
+
+## Security & Privacy
+
+### Document Privacy
+
+- Documents are **private by default**
+- Only owner and invited collaborators have access
+- No public sharing links (not yet supported)
+- Collaborator list only visible to existing collaborators
+
+### Data Access
+
+<Accordion title="What collaborators can see">
+  - The PDF document
+  - All highlights (from any collaborator)
+  - All notes (shared note space)
+  - AI Chat history (shared)
+  - Flashcards (shared)
+  - Collaborator list (emails and roles)
+</Accordion>
+
+<Accordion title="What collaborators cannot see">
+  - Other documents you own
+  - Your workspace
+  - Your personal information beyond email
+  - Documents you don't share with them
+</Accordion>
+
+### Removing Access
+
+When you remove a collaborator:
+
+✓ They immediately lose access
+✓ Can no longer view the document
+✓ Cannot access shared notes or chat history
+✓ Their previous contributions remain (highlights, notes)
+✗ Cannot revoke already-downloaded PDF files
+
+## Technical Implementation
+
+### Database Schema
+
+```prisma
+model Collaborator {
+  id         String   @id @default(cuid())
+  userId     String
+  documentId String
+  role       CollaboratorRole
+  
+  user       User     @relation(...)
+  document   Document @relation(...)
+}
+
+enum CollaboratorRole {
+  OWNER
+  EDITOR
+  VIEWER
+}
+```
+
+### API Mutations
+
+**Add Collaborator**:
+```typescript
+api.document.addCollaborator.useMutation({
+  documentId: string,
+  data: { email: string, role: string }
+})
+```
+
+**Remove Collaborator**:
+```typescript
+api.document.removeCollaboratorById.useMutation({
+  documentId: string,
+  userId: string
+})
+```
+
+**Get Collaborators**:
+```typescript
+api.document.getCollaborators.useQuery({
+  documentId: string
+})
+```
+
+### Optimistic Updates
+
+Collaborator changes use optimistic UI updates:
+
+1. UI updates immediately (instant feedback)
+2. Request sent to server
+3. If error, UI rolls back to previous state
+4. If success, UI stays updated
+
+This provides a snappy user experience even with network latency.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Can't invite a user">
+    - Ensure the email is correct
+    - User must have an Uxie account
+    - Check if they're already a collaborator
+    - Try refreshing the page
+    - Ensure you're the document owner
+  </Accordion>
+  
+  <Accordion title="Collaborator can't access document">
+    - Verify they received the invitation
+    - Check they're logged into Uxie
+    - Confirm they're using the correct email
+    - Try removing and re-inviting them
+  </Accordion>
+  
+  <Accordion title="Can't remove collaborator">
+    - Only owners can remove collaborators
+    - Cannot remove the owner (yourself)
+    - Try refreshing the page
+    - Check your internet connection
+  </Accordion>
+  
+  <Accordion title="Changes not appearing">
+    - Refresh the page to see updates
+    - Real-time sync is not yet available
+    - Check if you have edit permissions
+    - Verify you're viewing the same document
+  </Accordion>
+</AccordionGroup>
+
+## Future Features
+
+<Note>
+  Planned collaboration enhancements:
+  - Real-time editing with live cursors
+  - Public sharing links
+  - Role change without re-inviting
+  - Comment threads on highlights
+  - @mentions in notes
+  - Activity feed showing all changes
+  - Version history and restore
+  - Team workspaces
+  - Organization-level sharing
+</Note>
+
+## Related Features
+
+<CardGroup cols={3}>
+  <Card title="Note Taking" icon="note-sticky" href="/features/note-taking">
+    Collaborate on shared notes
+  </Card>
+  <Card title="Annotations" icon="highlighter" href="/features/annotations">
+    Share highlights with team
+  </Card>
+  <Card title="AI Chat" icon="messages" href="/features/ai-chat">
+    Shared chat history
+  </Card>
+</CardGroup>

@@ -1,0 +1,585 @@
+---
+title: "Contributing Guide"
+description: "How to set up your development environment and contribute to Uxie"
+---
+
+# Contributing to Uxie
+
+Thank you for your interest in contributing to Uxie! This guide will help you set up your development environment and understand our development workflow.
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+<Steps>
+  <Step title="Node.js v18+">
+    Download from [nodejs.org](https://nodejs.org/)
+    
+    ```bash
+    node --version  # Should be v18.16.0 or higher
+    ```
+  </Step>
+  
+  <Step title="pnpm Package Manager">
+    Install pnpm globally:
+    
+    ```bash
+    npm install -g pnpm@9.14.2
+    ```
+    
+    Or use Corepack (recommended):
+    ```bash
+    corepack enable
+    corepack prepare pnpm@9.14.2 --activate
+    ```
+  </Step>
+  
+  <Step title="Git">
+    For cloning the repository and version control.
+  </Step>
+</Steps>
+
+## Getting Started
+
+### 1. Fork and Clone
+
+<Steps>
+  <Step title="Fork the Repository">
+    Visit [github.com/zeus-12/uxie](https://github.com/zeus-12/uxie) and click the "Fork" button to create your own copy.
+  </Step>
+  
+  <Step title="Clone Your Fork">
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/uxie.git
+    cd uxie
+    ```
+  </Step>
+  
+  <Step title="Add Upstream Remote">
+    ```bash
+    git remote add upstream https://github.com/zeus-12/uxie.git
+    ```
+    
+    This allows you to pull updates from the main repository.
+  </Step>
+</Steps>
+
+### 2. Install Dependencies
+
+```bash
+pnpm install
+```
+
+This will:
+- Install all npm dependencies
+- Apply patches to `react-pdf-highlighter`
+- Generate Prisma Client types
+
+### 3. Set Up Environment Variables
+
+Copy the example environment file:
+
+```bash
+cp .env.example .env
+```
+
+Now configure each service:
+
+<Accordion title="Database Setup (Supabase)">
+1. Go to [supabase.com](https://supabase.com/) and create a new project
+2. Once created, navigate to **Settings → Database**
+3. Copy the connection string and add to `.env`:
+
+```bash
+DATABASE_URL="postgresql://postgres:[PASSWORD]@[HOST]:[PORT]/postgres"
+```
+
+4. Run migrations:
+```bash
+pnpm prisma db push
+```
+</Accordion>
+
+<Accordion title="Authentication (NextAuth + Google OAuth)">
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project (or select existing)
+3. Navigate to **APIs & Services → Credentials**
+4. Click **Create Credentials → OAuth 2.0 Client ID**
+5. Configure consent screen if prompted
+6. Set **Authorized redirect URIs**:
+   - `http://localhost:3000/api/auth/callback/google`
+7. Copy credentials to `.env`:
+
+```bash
+GOOGLE_CLIENT_ID="your-client-id.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="your-client-secret"
+```
+
+8. Generate NextAuth secret:
+```bash
+openssl rand -base64 32
+```
+
+Add to `.env`:
+```bash
+NEXTAUTH_SECRET="generated-secret"
+NEXTAUTH_URL="http://localhost:3000"
+```
+</Accordion>
+
+<Accordion title="File Upload (UploadThing)">
+1. Go to [uploadthing.com](https://uploadthing.com/) and sign up
+2. Create a new app
+3. Copy your API token:
+
+```bash
+UPLOADTHING_TOKEN="your-token"
+```
+</Accordion>
+
+<Accordion title="Vector Database (Pinecone)">
+1. Go to [pinecone.io](https://www.pinecone.io/) and sign up
+2. Create a new index with:
+   - **Name:** `uxie`
+   - **Dimensions:** `768`
+   - **Metric:** `cosine`
+   - **Region:** Choose closest to you
+3. Copy your API key:
+
+```bash
+PINECONE_API_KEY="your-api-key"
+PINECONE_ENVIRONMENT="your-environment"  # e.g., us-east-1
+```
+</Accordion>
+
+<Accordion title="AI Services">
+**HuggingFace (Embeddings)**
+
+1. Sign up at [huggingface.co](https://huggingface.co/)
+2. Go to **Settings → Access Tokens**
+3. Create a new token:
+
+```bash
+HUGGINGFACE_API_KEY="hf_..."
+```
+
+**Google AI (Gemini)**
+
+1. Go to [ai.google.dev](https://ai.google.dev/)
+2. Get an API key
+3. Add to `.env`:
+
+```bash
+GOOGLE_GENERATIVE_AI_API_KEY="your-api-key"
+```
+</Accordion>
+
+<Accordion title="Collaboration (Optional - Liveblocks)">
+Currently disabled in production due to free tier limits, but you can enable locally:
+
+1. Go to [liveblocks.io](https://liveblocks.io/) and sign up
+2. Create a new project
+3. Copy your public API key:
+
+```bash
+NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_API_KEY="pk_..."
+```
+</Accordion>
+
+### 4. Start Development Server
+
+```bash
+pnpm dev
+```
+
+The app will be available at [http://localhost:3000](http://localhost:3000)
+
+## Development Workflow
+
+### Creating a New Branch
+
+Always create a new branch for your changes:
+
+```bash
+git checkout -b feature/your-feature-name
+```
+
+Or for bug fixes:
+```bash
+git checkout -b fix/bug-description
+```
+
+### Making Changes
+
+<Steps>
+  <Step title="Write Code">
+    Make your changes following our coding standards (see below).
+  </Step>
+  
+  <Step title="Test Locally">
+    Ensure your changes work:
+    ```bash
+    pnpm dev
+    ```
+  </Step>
+  
+  <Step title="Type Check">
+    Verify TypeScript types:
+    ```bash
+    pnpm typecheck
+    ```
+  </Step>
+  
+  <Step title="Lint">
+    Check code quality:
+    ```bash
+    pnpm lint
+    ```
+  </Step>
+  
+  <Step title="Format">
+    Format code with Prettier:
+    ```bash
+    pnpm format
+    ```
+  </Step>
+</Steps>
+
+### Committing Changes
+
+We follow conventional commit messages:
+
+```bash
+git add .
+git commit -m "feat: add PDF thumbnail preview"
+```
+
+**Commit Types:**
+
+| Type | Description | Example |
+|------|-------------|--------|
+| `feat` | New feature | `feat: add export to markdown` |
+| `fix` | Bug fix | `fix: resolve highlight position offset` |
+| `docs` | Documentation | `docs: update contributing guide` |
+| `style` | Code style (no logic change) | `style: format with prettier` |
+| `refactor` | Code refactoring | `refactor: extract PDF utils` |
+| `perf` | Performance improvement | `perf: optimize vector search` |
+| `test` | Add/update tests | `test: add flashcard tests` |
+| `chore` | Maintenance | `chore: update dependencies` |
+
+### Opening a Pull Request
+
+<Steps>
+  <Step title="Push to Your Fork">
+    ```bash
+    git push origin feature/your-feature-name
+    ```
+  </Step>
+  
+  <Step title="Create Pull Request">
+    1. Go to [github.com/zeus-12/uxie](https://github.com/zeus-12/uxie)
+    2. Click "Compare & pull request"
+    3. Fill in the PR template
+    4. Link any related issues
+  </Step>
+  
+  <Step title="Review Process">
+    - Maintainers will review your PR
+    - Address any feedback
+    - Once approved, your PR will be merged!
+  </Step>
+</Steps>
+
+## Coding Standards
+
+### TypeScript
+
+<CardGroup cols={2}>
+  <Card title="Strict Mode" icon="shield">
+    Always use TypeScript in strict mode.
+    
+    - No `any` types (use `unknown`)
+    - Explicit return types for functions
+    - Null checks required
+  </Card>
+  
+  <Card title="Type Inference" icon="lightbulb">
+    Prefer type inference when obvious:
+    
+    ```typescript
+    // Good
+    const count = 5;
+    
+    // Unnecessary
+    const count: number = 5;
+    ```
+  </Card>
+</CardGroup>
+
+### React Components
+
+**Prefer Function Components:**
+
+```typescript
+// ✅ Good
+export function MyComponent({ title }: { title: string }) {
+  return <h1>{title}</h1>;
+}
+
+// ❌ Avoid
+export const MyComponent: React.FC<{ title: string }> = ({ title }) => {
+  return <h1>{title}</h1>;
+};
+```
+
+**Use Semantic JSX:**
+
+```typescript
+// ✅ Good
+<button type="button" onClick={handleClick}>
+  Click me
+</button>
+
+// ❌ Avoid
+<div onClick={handleClick}>Click me</div>
+```
+
+### File Organization
+
+<Steps>
+  <Step title="Component Structure">
+    ```
+    components/
+    ├── feature-name/
+    │   ├── index.tsx          # Main component
+    │   ├── sub-component.tsx  # Related components
+    │   └── utils.ts           # Helper functions
+    ```
+  </Step>
+  
+  <Step title="Import Order">
+    Prettier will auto-sort, but follow this pattern:
+    
+    1. React imports
+    2. Third-party libraries
+    3. Internal utilities
+    4. Types
+    5. Styles
+  </Step>
+  
+  <Step title="Naming Conventions">
+    - **Components:** PascalCase (`PdfReader.tsx`)
+    - **Utilities:** camelCase (`formatDate.ts`)
+    - **Constants:** UPPER_SNAKE_CASE
+    - **Types/Interfaces:** PascalCase
+  </Step>
+</Steps>
+
+### tRPC Procedures
+
+**Input Validation:**
+
+```typescript
+import { z } from "zod";
+
+export const documentRouter = createTRPCRouter({
+  getById: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return await ctx.prisma.document.findUnique({
+        where: { id: input.id },
+      });
+    }),
+});
+```
+
+**Always use protected procedures for authenticated routes.**
+
+### Prisma Schema
+
+When modifying `schema.prisma`:
+
+1. Make changes
+2. Generate migration:
+   ```bash
+   pnpm prisma migrate dev --name describe_change
+   ```
+3. Generate client:
+   ```bash
+   pnpm prisma generate
+   ```
+
+### Tailwind CSS
+
+**Use utility classes:**
+
+```tsx
+// ✅ Good
+<div className="flex items-center gap-4 rounded-lg bg-white p-4">
+
+// ❌ Avoid custom CSS
+<div className="my-custom-class">
+```
+
+**Use `cn()` helper for conditional classes:**
+
+```typescript
+import { cn } from "@/lib/utils";
+
+<div className={cn(
+  "base-classes",
+  isActive && "active-classes",
+  className  // Allow external classes
+)} />
+```
+
+## Testing Locally
+
+### Manual Testing Checklist
+
+Before submitting a PR, test:
+
+<Accordion title="Authentication Flow">
+- [ ] Can sign in with Google
+- [ ] Can sign out
+- [ ] Protected routes redirect to login
+</Accordion>
+
+<Accordion title="Document Management">
+- [ ] Can upload PDF
+- [ ] Can view PDF in reader
+- [ ] Can add highlights
+- [ ] Can add notes
+</Accordion>
+
+<Accordion title="AI Features">
+- [ ] Chat works and streams responses
+- [ ] Flashcard generation works
+- [ ] Flashcard evaluation works
+</Accordion>
+
+### Database Inspection
+
+Use Prisma Studio to inspect database:
+
+```bash
+pnpm prisma studio
+```
+
+Opens at [http://localhost:5555](http://localhost:5555)
+
+## Common Issues
+
+<Accordion title="Port Already in Use">
+If port 3000 is taken:
+
+```bash
+# Kill process on port 3000
+lsof -ti:3000 | xargs kill
+
+# Or use different port
+PORT=3001 pnpm dev
+```
+</Accordion>
+
+<Accordion title="Prisma Client Not Generated">
+If you see Prisma import errors:
+
+```bash
+pnpm prisma generate
+```
+
+This regenerates the Prisma Client.
+</Accordion>
+
+<Accordion title="Type Errors After Pull">
+After pulling latest changes:
+
+```bash
+pnpm install  # Install new dependencies
+pnpm prisma generate  # Regenerate Prisma types
+```
+</Accordion>
+
+<Accordion title="Environment Variable Issues">
+Ensure `.env` is in root directory (same level as `package.json`).
+
+Restart dev server after changing `.env`.
+</Accordion>
+
+## Project Scripts
+
+| Command | Description |
+|---------|-------------|
+| `pnpm dev` | Start development server |
+| `pnpm build` | Build for production |
+| `pnpm start` | Start production server |
+| `pnpm lint` | Run ESLint |
+| `pnpm typecheck` | Check TypeScript types |
+| `pnpm format` | Format code with Prettier |
+| `pnpm prisma studio` | Open Prisma Studio |
+| `pnpm prisma migrate dev` | Create/apply migration |
+| `pnpm prisma db push` | Push schema without migration |
+
+## Areas for Contribution
+
+Looking for where to help? Check these areas:
+
+<CardGroup cols={2}>
+  <Card title="Bug Fixes" icon="bug">
+    - Fix `.tippy-arrow` appearing on screen
+    - Improve error and loading pages
+    - Fix highlight positioning issues
+  </Card>
+  
+  <Card title="Features" icon="sparkles">
+    - Build category/tags system
+    - Implement rate limiting with Redis
+    - Semantic search improvements
+    - PDF summary generation
+  </Card>
+  
+  <Card title="Performance" icon="gauge">
+    - Optimize PDF rendering
+    - Reduce bundle size
+    - Improve vector search speed
+  </Card>
+  
+  <Card title="Documentation" icon="book">
+    - Add JSDoc comments
+    - Write component docs
+    - Create user guides
+  </Card>
+</CardGroup>
+
+## Code Review Guidelines
+
+When reviewing PRs:
+
+- **Be kind and constructive**
+- **Focus on code, not the person**
+- **Explain the "why" behind feedback**
+- **Approve when ready, request changes when needed**
+- **Test the changes locally if possible**
+
+## Community
+
+- **Issues:** [GitHub Issues](https://github.com/zeus-12/uxie/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/zeus-12/uxie/discussions)
+- **Feedback:** [Feedback Form](https://uxie.vercel.app/feedback)
+
+## License
+
+By contributing to Uxie, you agree that your contributions will be licensed under the project's license.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="sitemap" href="/development/architecture">
+    Understand the system architecture
+  </Card>
+  
+  <Card title="Deployment" icon="rocket" href="/development/deployment">
+    Learn about deployment and production
+  </Card>
+</CardGroup>

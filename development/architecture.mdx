@@ -1,0 +1,362 @@
+---
+title: "Architecture Overview"
+description: "Understanding Uxie's technical architecture, folder structure, and design patterns"
+---
+
+# Architecture Overview
+
+Uxie is built with a modern, scalable architecture leveraging Next.js, tRPC, Prisma, and cutting-edge AI technologies. This guide explains the core architectural decisions and how different parts of the system work together.
+
+## Project Structure
+
+The codebase follows a well-organized structure that separates concerns effectively:
+
+```
+src/
+├── app/                    # Next.js App Router (API routes)
+│   └── api/
+│       ├── chat/          # AI chat endpoint
+│       ├── completion/    # Text completion endpoint
+│       └── evaluate/      # Flashcard evaluation endpoint
+├── pages/                  # Next.js Pages Router
+│   ├── api/
+│   │   ├── auth/         # NextAuth.js handlers
+│   │   └── trpc/         # tRPC endpoints
+│   ├── f/                # Document viewer pages
+│   ├── index.tsx         # Landing page
+│   └── _app.tsx          # App wrapper
+├── components/             # React components
+│   ├── chat/             # Chat interface
+│   ├── editor/           # BlockNote editor
+│   ├── flashcard/        # Flashcard system
+│   ├── pdf-reader/       # PDF viewer & annotation
+│   ├── ui/               # Shadcn UI components
+│   └── workspace/        # Document workspace
+├── server/                 # Backend logic
+│   ├── api/
+│   │   ├── routers/      # tRPC route handlers
+│   │   ├── root.ts       # Router configuration
+│   │   └── trpc.ts       # tRPC setup
+│   ├── auth.ts           # NextAuth configuration
+│   └── db.ts             # Prisma client
+├── lib/                    # Utility functions
+│   ├── vectorise.ts      # PDF vectorization logic
+│   ├── pinecone.ts       # Pinecone client
+│   ├── tts/              # Text-to-speech providers
+│   └── utils.ts          # Helper functions
+├── hooks/                  # Custom React hooks
+├── schema/                 # Zod validation schemas
+├── types/                  # TypeScript type definitions
+└── styles/                 # Global styles
+```
+
+## Hybrid Next.js Routing
+
+Uxie uses both Next.js routing paradigms strategically:
+
+<CardGroup cols={2}>
+  <Card title="App Router" icon="route">
+    Used for modern AI API routes that leverage:
+    - Streaming responses with Vercel AI SDK
+    - Route handlers with `maxDuration` support
+    - Server-side streaming for chat and completions
+    
+    Located in `src/app/api/` (src/app/api/chat/route.ts:1)
+  </Card>
+  
+  <Card title="Pages Router" icon="folder">
+    Used for:
+    - tRPC API endpoints (`/api/trpc`)
+    - NextAuth.js authentication (`/api/auth`)
+    - Main application pages and UI routes
+    
+    Located in `src/pages/` (src/pages/_app.tsx:1)
+  </Card>
+</CardGroup>
+
+This hybrid approach allows us to use the best features of both routing systems without compromising functionality.
+
+## tRPC Integration Pattern
+
+Uxie uses tRPC for end-to-end type-safe APIs:
+
+### Router Setup
+
+The main router aggregates all feature routers:
+
+```typescript
+// src/server/api/root.ts
+export const appRouter = createTRPCRouter({
+  document: documentRouter,
+  user: userRouter,
+  highlight: highlightRouter,
+  message: messageRouter,
+  flashcard: flashcardRouter,
+});
+
+export type AppRouter = typeof appRouter;
+```
+
+### Context & Middleware
+
+tRPC context provides access to session and database:
+
+```typescript
+// src/server/api/trpc.ts
+const createInnerTRPCContext = (opts: CreateContextOptions) => {
+  return {
+    session: opts.session,
+    prisma,
+  };
+};
+```
+
+<Accordion title="Authentication Middleware">
+Protected procedures use middleware to enforce authentication:
+
+```typescript
+const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
+  if (!ctx.session?.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  return next({
+    ctx: {
+      session: { ...ctx.session, user: ctx.session.user },
+    },
+  });
+});
+
+export const protectedProcedure = t.procedure.use(enforceUserIsAuthed);
+```
+
+This ensures type-safe access to user data in protected routes (src/server/api/trpc.ts:110).
+</Accordion>
+
+### Client Configuration
+
+The tRPC client is configured with:
+- **SuperJSON** for serialization of Dates, Maps, Sets
+- **React Query** for caching and optimistic updates
+- **HTTP batch link** for request batching
+
+## Database Layer with Prisma
+
+Prisma provides type-safe database access with PostgreSQL:
+
+### Core Models
+
+<Steps>
+  <Step title="User & Authentication">
+    - `User` model stores user profiles
+    - `Account` model handles OAuth providers
+    - NextAuth.js Prisma adapter manages sessions
+    
+    (prisma/schema.prisma:28)
+  </Step>
+  
+  <Step title="Document Management">
+    - `Document` stores PDF metadata and URLs
+    - Tracks vectorization status (`isVectorised`)
+    - Links to highlights, messages, and flashcards
+    - Supports collaboration with `Collaborator` model
+    
+    (prisma/schema.prisma:51)
+  </Step>
+  
+  <Step title="Annotations & Highlights">
+    - `Highlight` stores PDF annotations
+    - `Cordinate` stores bounding boxes
+    - Supports both text and image highlights
+    
+    (prisma/schema.prisma:105)
+  </Step>
+  
+  <Step title="AI Features">
+    - `Message` stores chat history with JSON parts
+    - `Flashcard` stores generated questions/answers
+    - `FlashcardAttempt` tracks user responses and AI evaluation
+    
+    (prisma/schema.prisma:90)
+  </Step>
+</Steps>
+
+### Connection Management
+
+```typescript
+// src/server/db.ts
+import { PrismaClient } from "@prisma/client";
+
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+export const prisma = globalForPrisma.prisma ?? new PrismaClient();
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
+```
+
+This pattern prevents connection exhaustion during development hot-reloading.
+
+## AI/RAG Architecture
+
+Uxie implements Retrieval-Augmented Generation (RAG) for intelligent PDF interaction:
+
+### Vectorization Pipeline
+
+<Steps>
+  <Step title="PDF Loading">
+    PDFs are loaded using Langchain's `PDFLoader`:
+    
+    ```typescript
+    const response = await fetch(fileUrl);
+    const blob = await response.blob();
+    const loader = new PDFLoader(blob);
+    const pageLevelDocs = await loader.load();
+    ```
+    
+    (src/lib/vectorise.ts:63)
+  </Step>
+  
+  <Step title="Text Chunking">
+    Documents are split into overlapping chunks:
+    
+    ```typescript
+    const textSplitter = new RecursiveCharacterTextSplitter({
+      chunkSize: 1000,
+      chunkOverlap: 200,
+    });
+    const splitDocs = await textSplitter.splitDocuments(pageLevelDocs);
+    ```
+    
+    This ensures semantic coherence across chunk boundaries (src/lib/vectorise.ts:86).
+  </Step>
+  
+  <Step title="Embedding Generation">
+    Uses HuggingFace's `BAAI/bge-base-en-v1.5` model:
+    
+    ```typescript
+    const embeddings = createHuggingFaceEmbeddings();
+    // Generates 768-dimensional embeddings
+    ```
+    
+    (src/lib/vectorise.ts:20)
+  </Step>
+  
+  <Step title="Vector Storage">
+    Embeddings are stored in Pinecone:
+    
+    ```typescript
+    await PineconeStore.fromDocuments(combinedData, embeddings, {
+      pineconeIndex,
+    });
+    ```
+    
+    Metadata includes `fileId` for document-specific retrieval (src/lib/vectorise.ts:105).
+  </Step>
+</Steps>
+
+### Semantic Search & Chat
+
+The chat system uses tool-calling for retrieval:
+
+<Accordion title="RAG Chat Flow">
+1. **User Question** → Sent to chat API route
+2. **Tool Invocation** → LLM calls `getInformation` tool
+3. **Vector Search** → Query is embedded and matched against Pinecone:
+   ```typescript
+   const results = await vectorStore.similaritySearch(question, 4);
+   ```
+4. **Context Injection** → Top 4 results are passed back to LLM
+5. **Response Generation** → LLM generates answer based on context
+6. **Streaming** → Response streams to client using Vercel AI SDK
+
+(src/app/api/chat/route.ts:173)
+</Accordion>
+
+### AI Model Configuration
+
+```typescript
+const result = streamText({
+  model: google("gemini-2.5-flash"),
+  messages: await convertToModelMessages(messages),
+  system: SYSTEM_PROMPT,
+  tools: AI_TOOLS({ docId }),
+  toolChoice: "auto",
+  stopWhen: stepCountIs(3),
+  maxOutputTokens: 2000,
+});
+```
+
+Using Gemini 2.5 Flash for fast, efficient responses (src/app/api/chat/route.ts:90).
+
+## Real-time Collaboration
+
+<Card title="Liveblocks Integration" icon="users">
+  Uxie uses Liveblocks for real-time collaboration features:
+  
+  - **Shared Cursors** - See other users' cursor positions
+  - **Live Editing** - Collaborative note editing with BlockNote
+  - **Yjs Integration** - CRDT-based conflict-free editing
+  
+  Collaboration is currently disabled on production due to free tier limits.
+</Card>
+
+## File Storage
+
+- **PDFs** - Stored on UploadThing CDN
+- **Embeddings** - Stored in Pinecone (768 dimensions, cosine similarity)
+- **Metadata** - Stored in Supabase PostgreSQL
+
+## Authentication Flow
+
+NextAuth.js handles authentication with Google OAuth:
+
+1. User clicks "Sign in with Google"
+2. OAuth flow redirects to Google
+3. Google callback returns user profile
+4. NextAuth creates/updates user in database via Prisma adapter
+5. Session cookie issued with JWT
+
+## Performance Optimizations
+
+<CardGroup cols={2}>
+  <Card title="Webpack Customizations" icon="gear">
+    Special handling for client-side libraries:
+    - `scribe.js-ocr` - OCR processing
+    - `kokoro-js` - Local TTS models
+    - Custom Terser config to avoid breaking ONNX runtime
+    
+    (next.config.mjs:28)
+  </Card>
+  
+  <Card title="React Query Caching" icon="database">
+    - Optimistic updates for highlights
+    - Background refetching for documents
+    - Automatic cache invalidation
+  </Card>
+</CardGroup>
+
+## Key Architectural Decisions
+
+| Decision | Rationale |
+|----------|----------|
+| Hybrid Next.js routing | Leverage App Router for streaming AI while keeping tRPC on Pages Router |
+| tRPC over REST | End-to-end type safety eliminates API contract bugs |
+| Pinecone over alternatives | Managed vector database with excellent performance |
+| HuggingFace embeddings | Free, high-quality embeddings without vendor lock-in |
+| Prisma over raw SQL | Type-safe queries with excellent TypeScript support |
+| Monorepo structure | Full-stack in one repository simplifies development |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Tech Stack" icon="layer-group" href="/development/tech-stack">
+    Explore the full technology stack and dependencies
+  </Card>
+  
+  <Card title="Contributing" icon="code-pull-request" href="/development/contributing">
+    Learn how to set up your development environment
+  </Card>
+</CardGroup>

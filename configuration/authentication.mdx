@@ -1,0 +1,413 @@
+---
+title: Authentication
+description: Configure NextAuth with Google OAuth and session management
+---
+
+Uxie uses [NextAuth.js](https://next-auth.js.org/) for authentication, with Google OAuth as the primary authentication provider. User sessions are managed using JWT tokens.
+
+## NextAuth Configuration
+
+The authentication system is configured in `src/server/auth.ts` and uses the Prisma adapter to store user and account data.
+
+### Authentication Provider
+
+Uxie currently supports **Google OAuth** for user authentication:
+
+```typescript
+import GoogleProvider from "next-auth/providers/google";
+
+providers: [
+  GoogleProvider({
+    clientId: env.GOOGLE_CLIENT_ID,
+    clientSecret: env.GOOGLE_CLIENT_SECRET,
+  }),
+]
+```
+
+### Session Strategy
+
+Uxie uses **JWT sessions** for stateless authentication:
+
+```typescript
+session: {
+  strategy: "jwt",
+}
+```
+
+<Note>
+  JWT sessions are stored in HTTP-only cookies and don't require database lookups on every request, making them ideal for serverless deployments.
+</Note>
+
+## Google OAuth Setup
+
+### 1. Create Google OAuth Credentials
+
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project or select an existing one
+3. Navigate to **APIs & Services** > **Credentials**
+4. Click **Create Credentials** > **OAuth client ID**
+5. Configure the OAuth consent screen if prompted:
+   - User type: **External**
+   - App name: Your app name (e.g., "Uxie")
+   - User support email: Your email
+   - Authorized domains: Your domain
+
+### 2. Configure OAuth Client
+
+1. Application type: **Web application**
+2. Name: "Uxie Web Client" (or your preferred name)
+3. **Authorized JavaScript origins:**
+   - Development: `http://localhost:3000`
+   - Production: `https://yourdomain.com`
+
+4. **Authorized redirect URIs:**
+   - Development: `http://localhost:3000/api/auth/callback/google`
+   - Production: `https://yourdomain.com/api/auth/callback/google`
+
+5. Click **Create**
+6. Copy your **Client ID** and **Client Secret**
+7. Add them to your `.env` file:
+
+```bash
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-client-secret
+```
+
+<Warning>
+  Keep your `GOOGLE_CLIENT_SECRET` secure. Never commit it to version control or expose it in client-side code.
+</Warning>
+
+## Session Management
+
+### Session Callbacks
+
+Uxie extends the default session object to include additional user data:
+
+```typescript
+callbacks: {
+  async session({ session, token }) {
+    if (token) {
+      session.user.id = token.id;
+      session.user.name = token.name;
+      session.user.email = token.email;
+      session.user.image = token.picture;
+      session.user.plan = token.plan;  // User's subscription plan
+    }
+    return session;
+  },
+}
+```
+
+### JWT Callback
+
+The JWT callback fetches user data from the database and includes it in the token:
+
+```typescript
+async jwt({ token, user }) {
+  const dbUser = await prisma.user.findFirst({
+    where: {
+      email: token.email,
+    },
+  });
+
+  if (!dbUser) {
+    if (user) {
+      token.id = user?.id;
+    }
+    return token;
+  }
+
+  return {
+    id: dbUser.id,
+    name: dbUser.name,
+    email: dbUser.email,
+    picture: dbUser.image,
+    plan: dbUser.plan,  // Include plan in token
+  };
+}
+```
+
+<Note>
+  The user's subscription plan (`FREE`, `FREE_PLUS`, or `PRO`) is included in the session for easy access throughout the application.
+</Note>
+
+## User Roles and Plans
+
+### Subscription Plans
+
+Uxie supports three subscription tiers defined in the Prisma schema:
+
+```prisma
+enum Plan {
+  FREE
+  FREE_PLUS
+  PRO
+}
+
+model User {
+  plan Plan @default(FREE)
+}
+```
+
+<Accordion title="Plan Features">
+
+Each plan has different limits and features:
+
+- **FREE**: Basic document access with limited uploads
+- **FREE_PLUS**: Increased document limits
+- **PRO**: Maximum document limits and advanced features
+
+Plan limits are defined in `src/lib/constants.ts` and enforced in the upload middleware (see `src/server/uploadthing.ts:26`).
+
+</Accordion>
+
+### Document Collaboration Roles
+
+For document sharing, Uxie uses a separate role system:
+
+```prisma
+enum CollaboratorRole {
+  EDITOR   // Can edit and annotate
+  VIEWER   // Can only view
+  OWNER    // Full control
+}
+
+model Collaborator {
+  id         String           @id @default(cuid())
+  role       CollaboratorRole
+  document   Document         @relation(fields: [documentId], references: [id])
+  documentId String
+  userId     String
+  user       User             @relation(fields: [userId], references: [id])
+
+  @@unique([documentId, userId])
+}
+```
+
+<Note>
+  A user can have different roles for different documents. The `OWNER` role is automatically assigned to the document creator.
+</Note>
+
+## Custom Sign-In Page
+
+Uxie uses a custom sign-in page instead of the default NextAuth page:
+
+```typescript
+pages: {
+  signIn: "/login",
+}
+```
+
+Create your custom sign-in page at `src/pages/login.tsx` or `src/app/login/page.tsx` depending on your Next.js routing strategy.
+
+## Usage in Your Application
+
+### Server-Side Session
+
+Get the session in API routes or `getServerSideProps`:
+
+```typescript
+import { getServerAuthSession } from "@/server/auth";
+
+export const getServerSideProps = async (ctx) => {
+  const session = await getServerAuthSession(ctx);
+  
+  if (!session) {
+    return {
+      redirect: {
+        destination: "/login",
+        permanent: false,
+      },
+    };
+  }
+  
+  return {
+    props: { session },
+  };
+};
+```
+
+### Client-Side Session
+
+Use the `useSession` hook from NextAuth:
+
+```typescript
+import { useSession } from "next-auth/react";
+
+function MyComponent() {
+  const { data: session, status } = useSession();
+  
+  if (status === "loading") {
+    return <div>Loading...</div>;
+  }
+  
+  if (status === "unauthenticated") {
+    return <div>Please sign in</div>;
+  }
+  
+  return (
+    <div>
+      <p>Welcome, {session.user.name}!</p>
+      <p>Your plan: {session.user.plan}</p>
+    </div>
+  );
+}
+```
+
+### Sign In / Sign Out
+
+```typescript
+import { signIn, signOut } from "next-auth/react";
+
+// Sign in with Google
+const handleSignIn = () => {
+  signIn("google", { callbackUrl: "/dashboard" });
+};
+
+// Sign out
+const handleSignOut = () => {
+  signOut({ callbackUrl: "/" });
+};
+```
+
+## Protected Routes
+
+### API Route Protection
+
+Protect API routes by checking for a valid session:
+
+```typescript
+import { getServerAuthSession } from "@/server/auth";
+import { NextApiRequest, NextApiResponse } from "next";
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  const session = await getServerAuthSession({ req, res });
+  
+  if (!session?.user) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  
+  // Your protected logic here
+}
+```
+
+### Middleware Protection (App Router)
+
+For Next.js App Router, create a `middleware.ts` file:
+
+```typescript
+import { getToken } from "next-auth/jwt";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+export async function middleware(req: NextRequest) {
+  const token = await getToken({ req });
+  const isAuth = !!token;
+  const isAuthPage = req.nextUrl.pathname.startsWith("/login");
+
+  if (isAuthPage) {
+    if (isAuth) {
+      return NextResponse.redirect(new URL("/dashboard", req.url));
+    }
+    return null;
+  }
+
+  if (!isAuth) {
+    return NextResponse.redirect(new URL("/login", req.url));
+  }
+}
+
+export const config = {
+  matcher: ["/dashboard/:path*", "/documents/:path*"],
+};
+```
+
+## Environment Variables
+
+Make sure these environment variables are set:
+
+<ParamField path="NEXTAUTH_SECRET" type="string" required>
+  Secret for encrypting tokens and session data. Generate with:
+  ```bash
+  openssl rand -base64 32
+  ```
+</ParamField>
+
+<ParamField path="NEXTAUTH_URL" type="string" required>
+  Canonical URL of your site:
+  - Development: `http://localhost:3000`
+  - Production: `https://yourdomain.com`
+</ParamField>
+
+<ParamField path="GOOGLE_CLIENT_ID" type="string" required>
+  OAuth 2.0 Client ID from Google Cloud Console
+</ParamField>
+
+<ParamField path="GOOGLE_CLIENT_SECRET" type="string" required>
+  OAuth 2.0 Client Secret from Google Cloud Console
+</ParamField>
+
+## Troubleshooting
+
+<Accordion title="Redirect URI mismatch error">
+
+If you see "redirect_uri_mismatch" error:
+
+1. Check your Google OAuth redirect URIs exactly match:
+   - `http://localhost:3000/api/auth/callback/google` (development)
+   - `https://yourdomain.com/api/auth/callback/google` (production)
+
+2. Ensure no trailing slashes
+3. Wait a few minutes after updating Google Console settings
+
+</Accordion>
+
+<Accordion title="Session not persisting">
+
+If sessions aren't persisting:
+
+1. Verify `NEXTAUTH_SECRET` is set and consistent
+2. Check cookies are enabled in browser
+3. Ensure `NEXTAUTH_URL` matches your actual domain
+4. Clear cookies and try again
+
+</Accordion>
+
+<Accordion title="Database connection issues">
+
+If authentication fails with database errors:
+
+1. Verify `DATABASE_URL` is correct
+2. Run Prisma migrations: `npx prisma migrate dev`
+3. Check `Account` and `User` tables exist
+4. Verify Prisma Client is generated: `npx prisma generate`
+
+</Accordion>
+
+## Adding More Providers
+
+To add additional authentication providers (GitHub, Discord, etc.):
+
+1. Install the provider package if needed
+2. Add provider configuration:
+
+```typescript
+import GithubProvider from "next-auth/providers/github";
+
+providers: [
+  GoogleProvider({ ... }),
+  GithubProvider({
+    clientId: env.GITHUB_CLIENT_ID,
+    clientSecret: env.GITHUB_CLIENT_SECRET,
+  }),
+]
+```
+
+3. Add environment variables
+4. Update Prisma schema if provider requires additional fields
+5. Configure OAuth app in provider's developer console
+
+See [NextAuth.js Providers](https://next-auth.js.org/providers/) for more options.

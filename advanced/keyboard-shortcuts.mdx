@@ -1,0 +1,479 @@
+---
+title: "Keyboard Shortcuts"
+description: "Master all keyboard shortcuts in Uxie for faster navigation and productivity."
+---
+
+Uxie provides comprehensive keyboard shortcuts to help you navigate documents, control reading modes, and work more efficiently without touching your mouse.
+
+## Quick Reference
+
+<Tip>
+Press **?** (question mark) in most views to see context-specific keyboard shortcuts.
+</Tip>
+
+## PDF Reader Shortcuts
+
+Control document navigation and reading features:
+
+### Navigation
+
+| Action | Shortcut | Notes |
+|--------|----------|-------|
+| Next page | **Page Down** or **Arrow Down** | When not reading |
+| Previous page | **Page Up** or **Arrow Up** | When not reading |
+| First page | **Home** | Jump to start |
+| Last page | **End** | Jump to end |
+| Zoom in | **Ctrl/Cmd + Plus** | Increase magnification |
+| Zoom out | **Ctrl/Cmd + Minus** | Decrease magnification |
+| Reset zoom | **Ctrl/Cmd + 0** | Return to 100% |
+| Fullscreen | **F11** | Browser fullscreen |
+
+### Reading Controls
+
+When read-along mode is active:
+
+| Action | Shortcut | Description |
+|--------|----------|-------------|
+| Play / Pause | **Space** | Start or pause reading |
+| Next sentence | **→** (Right Arrow) | Skip forward |
+| Previous sentence | **←** (Left Arrow) | Go back |
+| Stop reading | **Esc** | Stop and clear highlights |
+| Toggle follow-along | **F** | Enable/disable auto-scroll |
+
+<CodeGroup>
+```tsx use-pdf-reader.tsx
+// Keyboard shortcuts for reading
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (readingStatus === READING_STATUS.IDLE) return;
+    
+    switch (e.code) {
+      case "Space":
+        e.preventDefault();
+        readingStatus === READING_STATUS.READING
+          ? pauseReading()
+          : resumeReading();
+        break;
+      case "ArrowRight":
+        e.preventDefault();
+        skipSentence();
+        break;
+      case "ArrowLeft":
+        e.preventDefault();
+        skipToPreviousSentence();
+        break;
+    }
+  };
+  
+  window.addEventListener("keydown", handleKeyDown);
+  return () => window.removeEventListener("keydown", handleKeyDown);
+}, [readingStatus]);
+```
+</CodeGroup>
+
+## RSVP Speed Reader Shortcuts
+
+When RSVP (speed reading) mode is active:
+
+<Tabs>
+  <Tab title="Playback">
+    | Action | Shortcut |
+    |--------|----------|
+    | Play / Pause | **Space** |
+    | Stop | **Esc** |
+    | Previous word | **←** |
+    | Next word | **→** |
+  </Tab>
+  <Tab title="Speed Control">
+    | Action | Shortcut |
+    |--------|----------|
+    | Increase speed | **↑** (Up Arrow) |
+    | Decrease speed | **↓** (Down Arrow) |
+    | Cycle speeds | Arrow keys cycle through: 200, 250, 300, 450, 500 WPM |
+  </Tab>
+  <Tab title="View Options">
+    | Action | Shortcut |
+    |--------|----------|
+    | Follow along | **F** |
+    | Close RSVP | **Esc** |
+  </Tab>
+</Tabs>
+
+<CodeGroup>
+```tsx rsvp-reader.tsx
+// RSVP keyboard shortcuts
+const SHORTCUTS = [
+  { label: "Play / Pause", displayKey: "Space", hotkey: "space" },
+  { label: "Previous word", displayKey: "←", hotkey: "arrowleft" },
+  { label: "Next word", displayKey: "→", hotkey: "arrowright" },
+  { label: "Increase speed", displayKey: "↑", hotkey: "arrowup" },
+  { label: "Decrease speed", displayKey: "↓", hotkey: "arrowdown" },
+  { label: "Follow along", displayKey: "F", hotkey: "f" },
+  { label: "Close", displayKey: "Esc", hotkey: "escape" },
+];
+
+useHotkeys(
+  SHORTCUTS.map(s => s.hotkey).join(","),
+  (e, handler) => {
+    const hotkey = handler.keys?.join("") as Hotkey;
+    hotkeyActions[hotkey]?.(e);
+  },
+  { enabled: rsvpOpen }
+);
+```
+</CodeGroup>
+
+## Speak-Along Shortcuts
+
+When speak-along (pronunciation practice) mode is active:
+
+| Action | Shortcut | Description |
+|--------|----------|-------------|
+| Toggle microphone | **Space** | Start/stop listening |
+| Previous word | **←** | Navigate backward |
+| Next word | **→** | Navigate forward |
+| Hear pronunciation | **Enter** | Play audio of current word |
+| Stop | **Esc** | Exit speak-along mode |
+
+<Note>
+Speak-along shortcuts only work when the speak-along panel is active and focused.
+</Note>
+
+## Note Editor Shortcuts
+
+The BlockNote editor supports standard text editing shortcuts:
+
+### Text Formatting
+
+<Tabs>
+  <Tab title="Basic Formatting">
+    | Action | Windows/Linux | macOS |
+    |--------|---------------|-------|
+    | Bold | **Ctrl + B** | **⌘ + B** |
+    | Italic | **Ctrl + I** | **⌘ + I** |
+    | Underline | **Ctrl + U** | **⌘ + U** |
+    | Strikethrough | **Ctrl + Shift + X** | **⌘ + Shift + X** |
+    | Code | **Ctrl + E** | **⌘ + E** |
+    | Link | **Ctrl + K** | **⌘ + K** |
+  </Tab>
+  <Tab title="Blocks">
+    | Action | Windows/Linux | macOS |
+    |--------|---------------|-------|
+    | Heading 1 | Type **# + Space** | Type **# + Space** |
+    | Heading 2 | Type **## + Space** | Type **## + Space** |
+    | Heading 3 | Type **### + Space** | Type **### + Space** |
+    | Bullet list | Type **- + Space** | Type **- + Space** |
+    | Numbered list | Type **1. + Space** | Type **1. + Space** |
+    | Checkbox | Type **[] + Space** | Type **[] + Space** |
+    | Code block | Type **``` + Space** | Type **``` + Space** |
+  </Tab>
+  <Tab title="AI Features">
+    | Action | Shortcut | Description |
+    |--------|----------|-------------|
+    | Quick AI | Type **++** | Trigger AI continuation |
+    | Stop AI | **Esc** | Cancel AI generation |
+    | Undo AI | **Ctrl/⌘ + Z** | Undo AI generation |
+  </Tab>
+</Tabs>
+
+### Editor Navigation
+
+| Action | Shortcut | Description |
+|--------|----------|-------------|
+| Select all | **Ctrl/⌘ + A** | Select all text |
+| Copy | **Ctrl/⌘ + C** | Copy selection |
+| Cut | **Ctrl/⌘ + X** | Cut selection |
+| Paste | **Ctrl/⌘ + V** | Paste from clipboard |
+| Undo | **Ctrl/⌘ + Z** | Undo last action |
+| Redo | **Ctrl/⌘ + Shift + Z** | Redo last undone action |
+| Find | **Ctrl/⌘ + F** | Search in notes |
+
+### Slash Commands
+
+Type **/** in the editor to open the slash command menu:
+
+<Accordion title="Available Slash Commands">
+- **/heading1** - Large heading
+- **/heading2** - Medium heading  
+- **/heading3** - Small heading
+- **/paragraph** - Normal text
+- **/bullet** - Bulleted list
+- **/number** - Numbered list
+- **/check** - Checkbox list
+- **/code** - Code block
+- **/image** - Insert image
+- **/table** - Insert table
+</Accordion>
+
+<CodeGroup>
+```tsx editor-utils.ts
+// Slash menu items
+export const getSlashMenuItems = (editor: BlockNoteEditor) => [
+  {
+    name: "Heading 1",
+    execute: () => editor.updateBlock(editor.getTextCursorPosition().block, {
+      type: "heading",
+      props: { level: 1 },
+    }),
+  },
+  {
+    name: "Heading 2",
+    execute: () => editor.updateBlock(editor.getTextCursorPosition().block, {
+      type: "heading",
+      props: { level: 2 },
+    }),
+  },
+  // ... more commands
+];
+```
+</CodeGroup>
+
+## Sidebar Shortcuts
+
+Switch between different tools in the right sidebar:
+
+| Action | Shortcut | Description |
+|--------|----------|-------------|
+| Switch tabs | **Alt + 1-4** | Jump to specific tab |
+| Notes tab | **Alt + 1** | Open notes |
+| Chat tab | **Alt + 2** | Open chat |
+| Flashcards tab | **Alt + 3** | Open flashcards |
+| Download notes | **Ctrl/⌘ + S** | Export as Markdown |
+
+<Note>
+Tab switching shortcuts are system-dependent and may conflict with browser shortcuts in some cases.
+</Note>
+
+## Library Page Shortcuts
+
+Navigate your document library:
+
+| Action | Shortcut | Description |
+|--------|----------|-------------|
+| Focus search | **/** or **Ctrl/⌘ + K** | Jump to search box |
+| Clear search | **Esc** | Clear search and blur |
+| Upload file | **Ctrl/⌘ + U** | Open upload modal |
+| Open document | **Enter** | When document card focused |
+
+## Global Shortcuts
+
+Work across all pages:
+
+| Action | Shortcut | Description |
+|--------|----------|-------------|
+| Go to library | **G then H** | Navigate to home/library |
+| Open settings | **G then S** | Open settings page |
+| Refresh page | **Ctrl/⌘ + R** or **F5** | Reload current page |
+| Browser back | **Alt + ←** | Go to previous page |
+| Browser forward | **Alt + →** | Go to next page |
+
+## Shortcuts by Context
+
+### When Reading a Document
+
+<Steps>
+  <Step title="Navigate Pages">
+    Use **Page Up/Down** or **Arrow keys** to move between pages
+  </Step>
+  <Step title="Adjust Zoom">
+    **Ctrl/⌘ + Plus/Minus** to zoom in/out
+  </Step>
+  <Step title="Start Reading">
+    Click **Play** or use toolbar controls
+  </Step>
+  <Step title="Control Reading">
+    **Space** to pause, **Arrows** to skip sentences
+  </Step>
+</Steps>
+
+### When Taking Notes
+
+<Steps>
+  <Step title="Format Text">
+    Use **Ctrl/⌘ + B/I/U** for bold/italic/underline
+  </Step>
+  <Step title="Use Slash Commands">
+    Type **/** for quick block insertion
+  </Step>
+  <Step title="AI Assistance">
+    Type **++** for AI completion
+  </Step>
+  <Step title="Save Progress">
+    Notes auto-save - use **Ctrl/⌘ + S** to download
+  </Step>
+</Steps>
+
+### When Using RSVP
+
+<Steps>
+  <Step title="Start Reading">
+    Press **Space** to begin
+  </Step>
+  <Step title="Adjust Speed">
+    Use **Up/Down arrows** to change WPM
+  </Step>
+  <Step title="Navigate Words">
+    **Left/Right arrows** to move word-by-word
+  </Step>
+  <Step title="Toggle Follow-Along">
+    Press **F** to enable/disable auto-scroll
+  </Step>
+</Steps>
+
+## Custom Shortcuts
+
+While Uxie doesn't currently support custom keyboard shortcuts, you can use browser extensions like:
+
+- **Shortkeys** (Chrome/Edge)
+- **Vimium** (Chrome/Firefox)
+- **Surfingkeys** (Chrome/Firefox)
+
+These let you create custom shortcuts for specific Uxie actions.
+
+## Accessibility Shortcuts
+
+| Action | Shortcut | Description |
+|--------|----------|-------------|
+| Skip to content | **Tab** | Navigate interactive elements |
+| Activate button | **Enter** or **Space** | Trigger focused button |
+| Close modal | **Esc** | Close dialogs and overlays |
+| Navigate menu | **Arrow keys** | Move through menu items |
+| Toggle option | **Space** | Check/uncheck boxes |
+
+<Tip>
+All interactive elements in Uxie are keyboard-accessible. Use **Tab** to navigate and **Enter** to activate.
+</Tip>
+
+## Shortcut Conflicts
+
+### Browser Conflicts
+
+Some shortcuts may conflict with browser defaults:
+
+<Warning>
+**Common Conflicts:**
+- **Ctrl/⌘ + F**: Browser find vs. editor find
+- **Ctrl/⌘ + S**: Browser save page vs. download notes
+- **F11**: Browser fullscreen
+- **Alt + Arrow**: Browser navigation
+
+In most cases, Uxie's shortcuts take precedence when the app is focused.
+</Warning>
+
+### Operating System Conflicts
+
+- **Windows**: Some Alt combinations may trigger menu bar
+- **macOS**: Some Cmd combinations may trigger system features
+- **Linux**: Window manager shortcuts may intercept Uxie shortcuts
+
+<Tip>
+If a shortcut doesn't work, try clicking inside the document or editor first to ensure Uxie has focus.
+</Tip>
+
+## Shortcut Tips
+
+<AccordionGroup>
+  <Accordion title="Learn Shortcuts Gradually">
+    Don't try to memorize all shortcuts at once. Start with:
+    1. Reading controls (Space, Arrows)
+    2. Text formatting (Bold, Italic)
+    3. AI trigger (++)
+    4. Modal close (Esc)
+    
+    Add more shortcuts as they become relevant to your workflow.
+  </Accordion>
+  
+  <Accordion title="Context-Aware Shortcuts">
+    The same key can do different things in different contexts:
+    - **Space** plays/pauses reading in reader mode
+    - **Space** inserts a space in the editor
+    - **Space** activates buttons when focused
+    
+    Uxie automatically uses the right action based on context.
+  </Accordion>
+  
+  <Accordion title="Discover New Shortcuts">
+    Hover over toolbar buttons to see tooltips with keyboard shortcuts. Most actions have a shortcut mentioned in their tooltip.
+  </Accordion>
+  
+  <Accordion title="Platform Differences">
+    Remember:
+    - Windows/Linux use **Ctrl**
+    - macOS uses **⌘ (Command)**
+    - Alt on Windows = Option on Mac
+    
+    Documentation shows both formats where applicable.
+  </Accordion>
+</AccordionGroup>
+
+## Productivity Workflows
+
+### Speed Reading Workflow
+
+```
+1. Open document → Click RSVP mode
+2. Set speed with ↑/↓ arrows
+3. Press Space to start
+4. Use F to enable follow-along
+5. Press Esc when done
+```
+
+### Note-Taking Workflow
+
+```
+1. Select text in PDF
+2. Alt+Tab to notes
+3. Ctrl/⌘ + V to paste
+4. Type ++ for AI expansion
+5. Ctrl/⌘ + B/I for formatting
+6. Slash commands for structure
+```
+
+### Study Session Workflow
+
+```
+1. Open document (auto-resumes last page)
+2. Space to start read-along
+3. Alt + 2 to switch to Chat
+4. Ask questions about content
+5. Alt + 3 to generate flashcards
+6. Alt + 1 back to notes
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Shortcut not working">
+    1. Click in the document/editor to ensure focus
+    2. Check if another modal or menu is open
+    3. Verify you're in the right context (e.g., reading mode vs. editing)
+    4. Try refreshing the page
+    5. Check for browser extension conflicts
+  </Accordion>
+  
+  <Accordion title="Arrow keys scroll page instead of navigating">
+    This happens when focus is on the page container rather than a reading mode. Click the Play button or use toolbar controls to activate reading mode.
+  </Accordion>
+  
+  <Accordion title="Ctrl/Cmd shortcuts trigger browser actions">
+    Some shortcuts like Ctrl+S (save) may trigger browser actions. This is normal - Uxie tries to override these when possible, but browser behavior varies.
+  </Accordion>
+  
+  <Accordion title="Shortcuts don't work in RSVP/Speak-Along">
+    Ensure the RSVP or speak-along panel is open and active. Shortcuts are only registered when these modes are enabled.
+  </Accordion>
+</AccordionGroup>
+
+## Related Features
+
+<CardGroup cols={3}>
+  <Card title="Reading Modes" icon="book-open" href="/advanced/reading-modes">
+    Learn about RSVP, read-along, and other reading features
+  </Card>
+  <Card title="Note-Taking" icon="note" href="/features/note-taking">
+    Master the note editor and its shortcuts
+  </Card>
+  <Card title="AI Completion" icon="sparkles" href="/advanced/ai-completion">
+    Use AI shortcuts for faster writing
+  </Card>
+</CardGroup>

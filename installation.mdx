@@ -1,0 +1,609 @@
+---
+title: "Installation"
+description: "Complete setup guide for installing and configuring Uxie locally with all required services and dependencies."
+---
+
+This guide provides detailed instructions for setting up Uxie on your local machine, including all required services and environment configurations.
+
+## Prerequisites
+
+Before installing Uxie, ensure you have the following:
+
+### Required Software
+
+- **Node.js** v18 or later ([download](https://nodejs.org/))
+- **pnpm** package manager ([installation](https://pnpm.io/installation))
+- **PostgreSQL** database (local or cloud-hosted)
+- **Git** for version control
+
+### Required Service Accounts
+
+You'll need accounts for the following services:
+
+<CardGroup cols={2}>
+  <Card title="Supabase" icon="database" href="https://supabase.com">
+    PostgreSQL database hosting
+  </Card>
+  
+  <Card title="Uploadthing" icon="upload" href="https://uploadthing.com">
+    PDF file storage and CDN
+  </Card>
+  
+  <Card title="Pinecone" icon="brain" href="https://www.pinecone.io">
+    Vector database for embeddings
+  </Card>
+  
+  <Card title="Google Cloud" icon="google" href="https://console.cloud.google.com">
+    OAuth and AI services
+  </Card>
+  
+  <Card title="Hugging Face" icon="face-smile" href="https://huggingface.co">
+    AI model embeddings
+  </Card>
+  
+  <Card title="Liveblocks" icon="users" href="https://liveblocks.io">
+    Real-time collaboration (optional)
+  </Card>
+</CardGroup>
+
+## Installation Steps
+
+<Steps>
+  <Step title="Clone the Repository">
+    ```bash
+    git clone https://github.com/zeus-12/uxie.git
+    cd uxie
+    ```
+  </Step>
+
+  <Step title="Install Dependencies">
+    <CodeGroup>
+      ```bash pnpm (recommended)
+      pnpm install
+      ```
+
+      ```bash npm
+      npm install
+      ```
+
+      ```bash yarn
+      yarn install
+      ```
+    </CodeGroup>
+
+    <Note>
+      The postinstall script will automatically run `prisma generate` to create the Prisma client.
+    </Note>
+  </Step>
+
+  <Step title="Configure Environment Variables">
+    Copy the example environment file:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    Open `.env` in your editor and configure all required variables (see below).
+  </Step>
+
+  <Step title="Set Up Database">
+    After configuring DATABASE_URL, push the Prisma schema:
+
+    ```bash
+    pnpm prisma db push
+    ```
+
+    This creates all necessary tables in your PostgreSQL database.
+  </Step>
+
+  <Step title="Start Development Server">
+    ```bash
+    pnpm dev
+    ```
+
+    The application will be available at [http://localhost:3000](http://localhost:3000)
+  </Step>
+</Steps>
+
+## Environment Variables
+
+Uxie requires several environment variables to function properly. Below is a comprehensive guide for each variable.
+
+### Database Configuration
+
+```bash .env
+DATABASE_URL="postgresql://user:password@localhost:5432/uxie"
+```
+
+**How to get it:**
+
+<Steps>
+  <Step title="Create Supabase Project">
+    1. Go to [Supabase](https://supabase.com) and create a new project
+    2. Wait for the project to be provisioned
+  </Step>
+
+  <Step title="Get Connection String">
+    1. Navigate to **Project Settings** → **Database**
+    2. Find the **Connection String** section
+    3. Copy the **Connection pooling** string (recommended for serverless)
+    4. Replace `[YOUR-PASSWORD]` with your database password
+  </Step>
+</Steps>
+
+<Note>
+  For local PostgreSQL, use: `postgresql://postgres:password@localhost:5432/uxie`
+</Note>
+
+### Authentication (NextAuth.js)
+
+```bash .env
+NEXTAUTH_SECRET="your-secret-here"
+NEXTAUTH_URL="http://localhost:3000"
+```
+
+**NEXTAUTH_SECRET**: Generate a secure random string:
+
+```bash
+openssl rand -base64 32
+```
+
+**NEXTAUTH_URL**: Your application URL
+- Development: `http://localhost:3000`
+- Production: Your deployed domain (e.g., `https://uxie.vercel.app`)
+
+### Google OAuth
+
+```bash .env
+GOOGLE_CLIENT_ID="your-client-id.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="your-client-secret"
+```
+
+<Steps>
+  <Step title="Create OAuth Credentials">
+    1. Go to [Google Cloud Console](https://console.cloud.google.com)
+    2. Create a new project or select an existing one
+    3. Navigate to **APIs & Services** → **Credentials**
+    4. Click **Create Credentials** → **OAuth client ID**
+  </Step>
+
+  <Step title="Configure OAuth Consent Screen">
+    1. Click **Configure Consent Screen**
+    2. Choose **External** user type
+    3. Fill in application name and support email
+    4. Add scopes: `email`, `profile`, `openid`
+  </Step>
+
+  <Step title="Create OAuth Client">
+    1. Application type: **Web application**
+    2. Add authorized redirect URIs:
+       - `http://localhost:3000/api/auth/callback/google` (development)
+       - `https://yourdomain.com/api/auth/callback/google` (production)
+    3. Copy the Client ID and Client Secret
+  </Step>
+</Steps>
+
+### File Upload (Uploadthing)
+
+```bash .env
+UPLOADTHING_TOKEN="your-uploadthing-token"
+```
+
+<Steps>
+  <Step title="Create Uploadthing Account">
+    1. Go to [Uploadthing](https://uploadthing.com)
+    2. Sign up and create a new application
+  </Step>
+
+  <Step title="Get API Token">
+    1. Navigate to your app's settings
+    2. Copy the **Secret Key** (starts with `sk_live_` or `sk_test_`)
+    3. Use this as UPLOADTHING_TOKEN
+  </Step>
+</Steps>
+
+<Warning>
+  Keep your Uploadthing token secret. Never commit it to version control.
+</Warning>
+
+### AI Features (Google Generative AI)
+
+```bash .env
+GOOGLE_GENERATIVE_AI_API_KEY="your-api-key"
+```
+
+<Steps>
+  <Step title="Enable Generative AI API">
+    1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+    2. Click **Get API Key**
+    3. Create a new API key or use an existing one
+  </Step>
+</Steps>
+
+This powers:
+- Document summarization
+- Question answering
+- Flashcard generation and evaluation
+- Text enhancement and autocompletion
+
+### Vector Database (Pinecone)
+
+```bash .env
+PINECONE_API_KEY="your-pinecone-api-key"
+PINECONE_ENVIRONMENT="your-environment"
+```
+
+<Steps>
+  <Step title="Create Pinecone Account">
+    1. Sign up at [Pinecone](https://www.pinecone.io)
+    2. Create a new project
+  </Step>
+
+  <Step title="Create Index">
+    1. Click **Create Index**
+    2. Configure:
+       - **Name**: `uxie` (or your preferred name)
+       - **Dimensions**: `768` (for Hugging Face embeddings)
+       - **Metric**: `cosine`
+       - **Pod Type**: Starter (free tier) or as needed
+    3. Click **Create Index**
+  </Step>
+
+  <Step title="Get API Key and Environment">
+    1. Go to **API Keys** in your project
+    2. Copy the API key
+    3. Note your environment (e.g., `us-west1-gcp`, `eu-west1-aws`)
+  </Step>
+</Steps>
+
+<Note>
+  Pinecone stores vector embeddings of your PDFs for semantic search and RAG (Retrieval Augmented Generation).
+</Note>
+
+### Embeddings (Hugging Face)
+
+```bash .env
+HUGGINGFACE_API_KEY="hf_your_token_here"
+```
+
+<Steps>
+  <Step title="Create Access Token">
+    1. Go to [Hugging Face Settings](https://huggingface.co/settings/tokens)
+    2. Click **New token**
+    3. Name: `uxie-embeddings`
+    4. Role: **Read** (inference API access)
+    5. Copy the token
+  </Step>
+</Steps>
+
+Uxie uses Hugging Face models to generate 768-dimensional embeddings for document vectorization.
+
+### Supabase Configuration
+
+```bash .env
+PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
+SUPABASE_SERVICE_KEY="your-service-role-key"
+```
+
+<Steps>
+  <Step title="Get Supabase Credentials">
+    1. In your Supabase project, go to **Project Settings** → **API**
+    2. Copy:
+       - **Project URL** → `PUBLIC_SUPABASE_URL`
+       - **service_role secret** → `SUPABASE_SERVICE_KEY`
+  </Step>
+</Steps>
+
+<Warning>
+  The service role key bypasses Row Level Security. Keep it secret and only use it server-side.
+</Warning>
+
+### Real-time Collaboration (Liveblocks)
+
+```bash .env
+NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_API_KEY="pk_live_your_key"
+```
+
+<Steps>
+  <Step title="Create Liveblocks Account">
+    1. Sign up at [Liveblocks](https://liveblocks.io)
+    2. Create a new project
+  </Step>
+
+  <Step title="Get Public API Key">
+    1. Go to your project settings
+    2. Copy the **Public API key** (starts with `pk_`)
+  </Step>
+</Steps>
+
+<Note>
+  Collaboration features may be limited in the free tier. This is optional for basic functionality.
+</Note>
+
+### Node Environment
+
+```bash .env
+NODE_ENV="development"
+```
+
+Set to:
+- `development` for local development
+- `production` for deployed environments
+- `test` for testing
+
+## Database Setup
+
+Uxie uses Prisma as the ORM and PostgreSQL as the database.
+
+### Schema Overview
+
+The database includes models for:
+
+- **User**: Authentication and user profiles
+- **Account**: OAuth provider accounts
+- **Document**: PDF documents and metadata
+- **Highlight**: Text and image highlights
+- **Message**: AI chat messages
+- **Flashcard**: Learning flashcards
+- **FlashcardAttempt**: User responses and AI evaluations
+- **Collaborator**: Document sharing and permissions
+- **Feedback**: User feedback submissions
+
+### Applying Schema Changes
+
+```bash
+# Push schema to database (development)
+pnpm prisma db push
+
+# Generate Prisma client
+pnpm prisma generate
+
+# Open Prisma Studio (database GUI)
+pnpm prisma studio
+```
+
+<Note>
+  `prisma db push` is recommended for development. For production, use migrations:
+  ```bash
+  pnpm prisma migrate deploy
+  ```
+</Note>
+
+### Database Relationships
+
+Key relationships:
+
+- Users have many Documents (one-to-many)
+- Documents have many Highlights, Messages, and Flashcards
+- Collaborators link Users to Documents with specific roles (OWNER, EDITOR, VIEWER)
+- FlashcardAttempts track user responses and AI evaluations
+
+## Verification
+
+After setup, verify everything works:
+
+<Steps>
+  <Step title="Check Database Connection">
+    ```bash
+    pnpm prisma studio
+    ```
+    
+    This should open Prisma Studio at [http://localhost:5555](http://localhost:5555)
+  </Step>
+
+  <Step title="Test Development Server">
+    ```bash
+    pnpm dev
+    ```
+    
+    Visit [http://localhost:3000](http://localhost:3000) and verify the page loads.
+  </Step>
+
+  <Step title="Test Authentication">
+    1. Click "Sign in"
+    2. Authenticate with Google
+    3. Verify you're redirected to the dashboard
+  </Step>
+
+  <Step title="Test File Upload">
+    1. Upload a small PDF
+    2. Check that it appears in your documents
+    3. Verify you can open and view it
+  </Step>
+</Steps>
+
+## Production Build
+
+To test the production build locally:
+
+```bash
+# Build the application
+pnpm build
+
+# Start production server
+pnpm start
+```
+
+The production build:
+- Optimizes and minifies code
+- Generates static pages where possible
+- Validates environment variables
+- Creates optimized images and assets
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Prisma Client errors">
+    If you see "Prisma Client not found" errors:
+
+    ```bash
+    pnpm prisma generate
+    ```
+
+    This regenerates the Prisma client based on your schema.
+  </Accordion>
+
+  <Accordion title="Database connection fails">
+    **Check DATABASE_URL format:**
+    ```
+    postgresql://user:password@host:port/database?schema=public
+    ```
+
+    **Test connection:**
+    ```bash
+    pnpm prisma db push
+    ```
+
+    **Common issues:**
+    - Incorrect password or username
+    - Database doesn't exist
+    - PostgreSQL not running
+    - Firewall blocking connection
+    - SSL mode mismatch (add `?sslmode=require` for cloud databases)
+  </Accordion>
+
+  <Accordion title="Environment variables not loading">
+    **Verify .env file location:**
+    - Must be in the root directory (same level as package.json)
+    - Named exactly `.env` (not `.env.local` or `.env.development`)
+
+    **Restart dev server:**
+    ```bash
+    # Kill the server (Ctrl+C)
+    pnpm dev
+    ```
+
+    **Check variable validation:**
+    Look in `src/env.mjs` for required variables and their validation rules.
+  </Accordion>
+
+  <Accordion title="OAuth redirect URI mismatch">
+    **Error:** "redirect_uri_mismatch"
+
+    **Solution:**
+    1. Go to Google Cloud Console
+    2. Check Authorized redirect URIs
+    3. Ensure it includes: `http://localhost:3000/api/auth/callback/google`
+    4. URIs must match exactly (no trailing slashes)
+  </Accordion>
+
+  <Accordion title="Uploadthing upload fails">
+    **Check:**
+    - UPLOADTHING_TOKEN is valid and not expired
+    - File size is within limits (check your Uploadthing plan)
+    - Network connection is stable
+
+    **Test with smaller file:**
+    Try uploading a small (under 1MB) PDF first.
+  </Accordion>
+
+  <Accordion title="Pinecone errors">
+    **Index configuration mismatch:**
+    - Dimensions must be `768`
+    - Metric should be `cosine`
+
+    **Check index exists:**
+    ```bash
+    # Index name should match what's used in the code
+    # Default: uses PINECONE_INDEX_NAME from env
+    ```
+
+    **Recreate index if needed** with correct dimensions.
+  </Accordion>
+
+  <Accordion title="Build fails">
+    **Type errors:**
+    ```bash
+    pnpm typecheck
+    ```
+
+    **Clear cache and rebuild:**
+    ```bash
+    rm -rf .next
+    pnpm build
+    ```
+
+    **Check Node.js version:**
+    ```bash
+    node --version  # Should be v18 or later
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Optional Configuration
+
+### Custom Port
+
+Change the development port:
+
+```bash package.json
+"dev": "next dev -p 3001"
+```
+
+Or use an environment variable:
+
+```bash
+PORT=3001 pnpm dev
+```
+
+### TypeScript Configuration
+
+Uxie uses strict TypeScript settings. See `tsconfig.json` for configuration.
+
+### Code Quality
+
+```bash
+# Run ESLint
+pnpm lint
+
+# Type checking
+pnpm typecheck
+
+# Format code
+pnpm format
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quickstart Guide" icon="rocket" href="/quickstart">
+    Get up and running quickly
+  </Card>
+  <Card title="Architecture" icon="sitemap" href="/development/architecture">
+    Understand how Uxie works
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Explore the tRPC API
+  </Card>
+  <Card title="Contributing" icon="github" href="/development/contributing">
+    Join the development
+  </Card>
+  
+  <Card title="Architecture" icon="sitemap" href="/architecture">
+    Understand Uxie's technical architecture
+  </Card>
+  
+  <Card title="API Reference" icon="code" href="/api-reference">
+    Explore the tRPC API endpoints
+  </Card>
+  
+  <Card title="Contributing" icon="github" href="/contributing">
+    Contribute to Uxie's development
+  </Card>
+</CardGroup>
+
+## Getting Help
+
+If you encounter issues not covered here:
+
+1. Check [GitHub Issues](https://github.com/zeus-12/uxie/issues) for similar problems
+2. Review the [README](https://github.com/zeus-12/uxie#readme) for additional context
+3. Open a new issue with:
+   - Your Node.js version (`node --version`)
+   - Error messages (full stack trace)
+   - Steps to reproduce
+4. Join the community discussion on GitHub
+
+<Tip>
+  For production deployments, consider using Vercel for easy setup with automatic environment variable management and zero-config deployments.
+</Tip>

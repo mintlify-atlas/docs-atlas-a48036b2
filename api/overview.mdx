@@ -1,0 +1,159 @@
+---
+title: API Overview
+description: Learn about Uxie's tRPC API architecture and how to make API calls from your client
+---
+
+## Architecture
+
+Uxie uses [tRPC](https://trpc.io) to provide end-to-end typesafe APIs. The API is built on top of Next.js API routes and uses Prisma as the ORM layer to interact with a PostgreSQL database.
+
+### What is tRPC?
+
+tRPC allows you to easily build & consume fully typesafe APIs without schemas or code generation. It leverages TypeScript's inference to provide autocompletion and type safety across your entire stack.
+
+### API Routers
+
+The Uxie API is organized into the following routers:
+
+- **document** - Document management, collaboration, and vectorization
+- **user** - User profile and document listing
+- **highlight** - Text and image highlighting within documents
+- **message** - Chat messages for AI conversations about documents
+- **flashcard** - Flashcard generation and retrieval for studying
+
+## Making API Calls
+
+### Client Setup
+
+The tRPC client is configured in `/src/lib/api.ts` and uses React Query hooks for data fetching:
+
+```typescript
+import { api } from "@/lib/api";
+
+// Use the api object in your React components
+function MyComponent() {
+  const { data, isLoading } = api.user.getUsersDocs.useQuery();
+  
+  return (
+    <div>
+      {data?.map(doc => (
+        <div key={doc.id}>{doc.title}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+### Queries vs Mutations
+
+**Queries** are for reading data:
+
+```typescript
+const { data } = api.document.getDocData.useQuery({ 
+  docId: "123" 
+});
+```
+
+**Mutations** are for creating, updating, or deleting data:
+
+```typescript
+const mutation = api.document.updateTitle.useMutation();
+
+mutation.mutate({
+  docId: "123",
+  title: "New Title"
+});
+```
+
+## Request Context
+
+Every tRPC procedure has access to a context object that includes:
+
+<ParamField path="ctx.session" type="Session | null">
+  The authenticated user's session (null if not authenticated)
+</ParamField>
+
+<ParamField path="ctx.prisma" type="PrismaClient">
+  The Prisma client for database operations
+</ParamField>
+
+### Session Object
+
+When authenticated, the session includes:
+
+```typescript
+{
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    image: string;
+    plan: "FREE" | "FREE_PLUS" | "PRO";
+  }
+}
+```
+
+## Error Handling
+
+All API procedures can throw `TRPCError` with appropriate error codes:
+
+<CodeGroup>
+```typescript Client-Side
+const mutation = api.document.getDocData.useQuery(
+  { docId: "123" },
+  {
+    onError: (error) => {
+      if (error.data?.code === "UNAUTHORIZED") {
+        console.error("Not authorized to access this document");
+      }
+    }
+  }
+);
+```
+
+```typescript Error Codes
+// Common error codes:
+// - UNAUTHORIZED: User not authenticated or lacks permission
+// - NOT_FOUND: Resource not found
+// - BAD_REQUEST: Invalid input or operation not allowed
+// - INTERNAL_SERVER_ERROR: Server-side error occurred
+```
+</CodeGroup>
+
+## Data Transformers
+
+Uxie uses [SuperJSON](https://github.com/blitz-js/superjson) to serialize/deserialize data, which allows you to send Date objects, Sets, Maps, and more over the wire:
+
+```typescript
+// Dates are automatically serialized and deserialized
+const { data } = api.user.getUsersDocs.useQuery();
+console.log(data[0].updatedAt instanceof Date); // true
+```
+
+## Type Safety
+
+Import types from your router for full type safety:
+
+```typescript
+import type { RouterInputs } from "@/lib/api";
+
+type DocumentInput = RouterInputs["document"]["getDocData"];
+// { docId: string }
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock" href="/api/authentication">
+    Learn about authentication and protected procedures
+  </Card>
+  <Card title="Document API" icon="file" href="/api/document">
+    Manage documents, collaborators, and vectorization
+  </Card>
+  <Card title="Highlight API" icon="highlighter" href="/api/highlight">
+    Add and manage highlights in documents
+  </Card>
+  <Card title="Flashcard API" icon="cards-blank" href="/api/flashcard">
+    Generate and retrieve flashcards for studying
+  </Card>
+</CardGroup>

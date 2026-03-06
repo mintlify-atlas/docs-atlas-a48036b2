@@ -1,0 +1,453 @@
+---
+title: User API
+description: Retrieve user documents and submit feedback
+---
+
+## Overview
+
+The User API provides endpoints for retrieving a user's document library and submitting feedback to the platform.
+
+## Procedures
+
+### getUsersDocs
+
+Retrieve all documents accessible to the current user, including owned documents and documents shared via collaboration.
+
+**No input parameters required** - uses authenticated session
+
+**Returns:** Array of documents sorted by most recently updated
+
+<ResponseField name="[]" type="Document[]">
+  <Expandable title="properties">
+    <ResponseField name="id" type="string">
+      Document unique identifier
+    </ResponseField>
+    
+    <ResponseField name="title" type="string">
+      Document title
+    </ResponseField>
+    
+    <ResponseField name="isVectorised" type="boolean">
+      Whether the document has been vectorized for AI chat
+    </ResponseField>
+    
+    <ResponseField name="isCollab" type="boolean">
+      Whether this is a collaborated document (true) or owned document (false)
+    </ResponseField>
+    
+    <ResponseField name="coverImageUrl" type="string">
+      URL to the document's cover image/thumbnail
+    </ResponseField>
+    
+    <ResponseField name="pageCount" type="number">
+      Total number of pages in the document
+    </ResponseField>
+    
+    <ResponseField name="lastReadPage" type="number">
+      The last page the user was reading (1-indexed)
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+**Example:**
+
+<CodeGroup>
+```typescript React Component
+import { api } from "@/lib/api";
+
+function DocumentLibrary() {
+  const { data: documents, isLoading } = api.user.getUsersDocs.useQuery();
+  
+  if (isLoading) return <div>Loading your library...</div>;
+  
+  return (
+    <div className="document-grid">
+      {documents?.map((doc) => (
+        <div key={doc.id} className="document-card">
+          <img src={doc.coverImageUrl} alt={doc.title} />
+          <h3>{doc.title}</h3>
+          <div className="meta">
+            <span>{doc.pageCount} pages</span>
+            {doc.isCollab && <span className="badge">Shared</span>}
+            {doc.isVectorised && <span className="badge">AI Ready</span>}
+          </div>
+          <progress 
+            value={doc.lastReadPage} 
+            max={doc.pageCount}
+          />
+          <span>{Math.round((doc.lastReadPage / doc.pageCount) * 100)}% read</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+```typescript Response
+[
+  {
+    id: "clx123abc",
+    title: "Introduction to Machine Learning",
+    isVectorised: true,
+    isCollab: false,
+    coverImageUrl: "https://storage.example.com/covers/doc1.jpg",
+    pageCount: 42,
+    lastReadPage: 15
+  },
+  {
+    id: "clx456def",
+    title: "Team Project Proposal",
+    isVectorised: false,
+    isCollab: true,
+    coverImageUrl: "https://storage.example.com/covers/doc2.jpg",
+    pageCount: 8,
+    lastReadPage: 8
+  },
+  {
+    id: "clx789ghi",
+    title: "Research Paper Draft",
+    isVectorised: true,
+    isCollab: false,
+    coverImageUrl: "https://storage.example.com/covers/doc3.jpg",
+    pageCount: 25,
+    lastReadPage: 1
+  }
+]
+```
+</CodeGroup>
+
+### Document Sorting
+
+Documents are automatically sorted by `updatedAt` timestamp (most recent first). This includes:
+
+- Recently edited documents
+- Documents with new highlights or messages
+- Documents with updated reading progress
+
+---
+
+### submitFeedback
+
+Submit user feedback to the platform. This is a **public procedure** that can be used by authenticated or unauthenticated users.
+
+<ParamField path="message" type="string" required>
+  The feedback message content
+</ParamField>
+
+<ParamField path="type" type="string" required>
+  Type of feedback (e.g., "bug", "feature", "general")
+</ParamField>
+
+<ParamField path="email" type="string">
+  Contact email (optional, for anonymous users or if different from account email)
+</ParamField>
+
+**Returns:** The created feedback object
+
+**Example:**
+
+<CodeGroup>
+```typescript Authenticated User
+import { api } from "@/lib/api";
+
+function FeedbackForm() {
+  const [message, setMessage] = useState("");
+  const [type, setType] = useState("general");
+  
+  const submitFeedback = api.user.submitFeedback.useMutation({
+    onSuccess: () => {
+      toast.success("Thank you for your feedback!");
+      setMessage("");
+    },
+  });
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitFeedback.mutate({ message, type });
+  };
+  
+  return (
+    <form onSubmit={handleSubmit}>
+      <select value={type} onChange={e => setType(e.target.value)}>
+        <option value="bug">Bug Report</option>
+        <option value="feature">Feature Request</option>
+        <option value="general">General Feedback</option>
+      </select>
+      
+      <textarea 
+        value={message}
+        onChange={e => setMessage(e.target.value)}
+        placeholder="Tell us what you think..."
+        required
+      />
+      
+      <button type="submit" disabled={submitFeedback.isLoading}>
+        Submit Feedback
+      </button>
+    </form>
+  );
+}
+```
+
+```typescript Anonymous User
+import { api } from "@/lib/api";
+
+function AnonymousFeedbackForm() {
+  const [formData, setFormData] = useState({
+    message: "",
+    type: "general",
+    email: ""
+  });
+  
+  const submitFeedback = api.user.submitFeedback.useMutation();
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitFeedback.mutate(formData);
+  };
+  
+  return (
+    <form onSubmit={handleSubmit}>
+      <input
+        type="email"
+        value={formData.email}
+        onChange={e => setFormData({...formData, email: e.target.value})}
+        placeholder="Your email (optional)"
+      />
+      
+      <select 
+        value={formData.type} 
+        onChange={e => setFormData({...formData, type: e.target.value})}
+      >
+        <option value="bug">Bug Report</option>
+        <option value="feature">Feature Request</option>
+        <option value="general">General Feedback</option>
+      </select>
+      
+      <textarea 
+        value={formData.message}
+        onChange={e => setFormData({...formData, message: e.target.value})}
+        placeholder="Your feedback..."
+        required
+      />
+      
+      <button type="submit">Submit</button>
+    </form>
+  );
+}
+```
+</CodeGroup>
+
+## Data Models
+
+### User Schema
+
+```typescript
+interface User {
+  id: string;
+  name: string;
+  email: string | null;
+  emailVerified: Date | null;
+  image: string | null;
+  createdAt: Date;
+  plan: Plan;
+}
+
+enum Plan {
+  FREE = "FREE",
+  FREE_PLUS = "FREE_PLUS",
+  PRO = "PRO"
+}
+```
+
+### Feedback Schema
+
+```typescript
+interface Feedback {
+  id: string;
+  message: string;
+  contact_email: string | null;
+  type: string;
+  createdAt: Date;
+  userId: string | null;  // null for anonymous feedback
+}
+```
+
+## Use Cases
+
+### Dashboard Document List
+
+```typescript
+function Dashboard() {
+  const { data: documents } = api.user.getUsersDocs.useQuery();
+  
+  const ownedDocs = documents?.filter(d => !d.isCollab) ?? [];
+  const sharedDocs = documents?.filter(d => d.isCollab) ?? [];
+  
+  return (
+    <div>
+      <section>
+        <h2>My Documents ({ownedDocs.length})</h2>
+        <DocumentGrid documents={ownedDocs} />
+      </section>
+      
+      <section>
+        <h2>Shared with Me ({sharedDocs.length})</h2>
+        <DocumentGrid documents={sharedDocs} />
+      </section>
+    </div>
+  );
+}
+```
+
+### Reading Progress
+
+```typescript
+function ReadingProgress() {
+  const { data: documents } = api.user.getUsersDocs.useQuery();
+  
+  const inProgress = documents?.filter(doc => 
+    doc.lastReadPage > 1 && doc.lastReadPage < doc.pageCount
+  ) ?? [];
+  
+  return (
+    <div>
+      <h2>Continue Reading</h2>
+      {inProgress.map(doc => (
+        <div key={doc.id}>
+          <h3>{doc.title}</h3>
+          <p>Page {doc.lastReadPage} of {doc.pageCount}</p>
+          <ProgressBar 
+            value={doc.lastReadPage} 
+            max={doc.pageCount} 
+          />
+          <Link href={`/document/${doc.id}`}>Continue Reading</Link>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+### Vectorization Status
+
+```typescript
+function VectorizationStatus() {
+  const { data: documents } = api.user.getUsersDocs.useQuery();
+  
+  const needsVectorization = documents?.filter(d => !d.isVectorised) ?? [];
+  
+  return (
+    <div>
+      {needsVectorization.length > 0 && (
+        <Alert>
+          <h3>Enable AI Chat</h3>
+          <p>
+            {needsVectorization.length} document(s) can be vectorized for AI chat.
+          </p>
+          <ul>
+            {needsVectorization.map(doc => (
+              <li key={doc.id}>
+                {doc.title}
+                <VectorizeButton documentId={doc.id} />
+              </li>
+            ))}
+          </ul>
+        </Alert>
+      )}
+    </div>
+  );
+}
+```
+
+### Search and Filter
+
+```typescript
+function DocumentSearch() {
+  const { data: documents } = api.user.getUsersDocs.useQuery();
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<'all' | 'owned' | 'shared'>('all');
+  
+  const filteredDocs = documents?.filter(doc => {
+    const matchesSearch = doc.title.toLowerCase().includes(search.toLowerCase());
+    const matchesFilter = 
+      filter === 'all' ? true :
+      filter === 'owned' ? !doc.isCollab :
+      doc.isCollab;
+    
+    return matchesSearch && matchesFilter;
+  });
+  
+  return (
+    <div>
+      <input 
+        type="search"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Search documents..."
+      />
+      
+      <FilterButtons>
+        <button onClick={() => setFilter('all')}>All</button>
+        <button onClick={() => setFilter('owned')}>My Documents</button>
+        <button onClick={() => setFilter('shared')}>Shared</button>
+      </FilterButtons>
+      
+      <DocumentGrid documents={filteredDocs} />
+    </div>
+  );
+}
+```
+
+## Performance Considerations
+
+<Card title="Caching" icon="database">
+  The document list is cached by React Query. It automatically refetches when:
+  - Component remounts after being unmounted
+  - Window regains focus
+  - Network reconnects
+  
+  Manually invalidate when documents change:
+  ```typescript
+  const utils = api.useContext();
+  utils.user.getUsersDocs.invalidate();
+  ```
+</Card>
+
+<Card title="Optimistic Updates" icon="bolt">
+  Update the cache optimistically when modifying documents:
+  ```typescript
+  const updateTitle = api.document.updateTitle.useMutation({
+    onMutate: async (newData) => {
+      await utils.user.getUsersDocs.cancel();
+      const previousDocs = utils.user.getUsersDocs.getData();
+      
+      utils.user.getUsersDocs.setData(undefined, (old) =>
+        old?.map(doc => 
+          doc.id === newData.docId 
+            ? { ...doc, title: newData.title }
+            : doc
+        )
+      );
+      
+      return { previousDocs };
+    },
+  });
+  ```
+</Card>
+
+## Error Handling
+
+```typescript
+const { data, error, isError } = api.user.getUsersDocs.useQuery(undefined, {
+  onError: (error) => {
+    if (error.data?.code === "UNAUTHORIZED") {
+      // User needs to log in
+      router.push("/login");
+    } else {
+      toast.error("Failed to load documents");
+    }
+  },
+  retry: 3,  // Retry failed requests
+});
+```

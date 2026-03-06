@@ -1,0 +1,327 @@
+---
+title: "Reading Modes"
+description: "Explore different reading modes in Uxie to enhance your reading speed, comprehension, and focus."
+---
+
+Uxie offers multiple specialized reading modes designed to improve your reading experience. Each mode is optimized for different reading goals and preferences.
+
+## Available Reading Modes
+
+<CardGroup cols={2}>
+  <Card title="Bionic Reading" icon="bolt">
+    Enhanced text readability with bold emphasis on key word parts
+  </Card>
+  <Card title="RSVP Reader" icon="forward">
+    Speed reading with word-by-word display at adjustable speeds
+  </Card>
+  <Card title="Read-Along" icon="microphone">
+    Sentence-by-sentence highlighting with text-to-speech
+  </Card>
+  <Card title="Speak-Along" icon="volume">
+    Practice pronunciation with voice recognition and mic input
+  </Card>
+</CardGroup>
+
+## Bionic Reading Mode
+
+Bionic reading enhances text readability by bolding the first few characters of each word, helping your eyes guide through text more efficiently.
+
+### How to Enable
+
+1. Click the **Settings** icon in the PDF toolbar (bottom of screen)
+2. Toggle **Bionic reading (BETA)**
+3. The effect applies immediately to all text in the PDF
+
+<Note>
+If the bionic text overlaps with regular text, try increasing the zoom level using the zoom controls in the toolbar.
+</Note>
+
+### When to Use
+
+- Reading long documents or research papers
+- When you need to maintain focus for extended periods
+- Processing dense technical content
+- Reducing eye strain during long reading sessions
+
+<Tip>
+Bionic reading works best at zoom levels of 125% or higher. Experiment to find your optimal reading size.
+</Tip>
+
+## RSVP (Rapid Serial Visual Presentation)
+
+RSVP mode displays one word at a time in the center of your screen, allowing you to read at speeds up to 500 words per minute.
+
+### Activation
+
+<Steps>
+  <Step title="Open Settings">
+    Click the Settings icon in the PDF toolbar
+  </Step>
+  <Step title="Enable Speed Read">
+    Toggle the "Speed Read" option
+  </Step>
+  <Step title="Start Reading">
+    Press Play or hit **Space** to begin
+  </Step>
+</Steps>
+
+### Controls
+
+The RSVP reader uses Optimal Recognition Point (ORP) technology, which highlights the key letter in each word for faster recognition.
+
+<Tabs>
+  <Tab title="Keyboard Shortcuts">
+    | Action | Shortcut |
+    |--------|----------|
+    | Play / Pause | **Space** |
+    | Previous word | **←** |
+    | Next word | **→** |
+    | Increase speed | **↑** |
+    | Decrease speed | **↓** |
+    | Follow along | **F** |
+    | Close | **Esc** |
+  </Tab>
+  <Tab title="Speed Settings">
+    Available reading speeds:
+    - 200 WPM (words per minute)
+    - 250 WPM
+    - 300 WPM
+    - 450 WPM
+    - 500 WPM
+    
+    Click the speed dropdown to switch between presets.
+  </Tab>
+</Tabs>
+
+### Follow-Along Feature
+
+Enable **Follow along** to have the PDF automatically scroll to show the current word's context in the document. This helps maintain spatial awareness while speed reading.
+
+<CodeGroup>
+```tsx rsvp-reader.tsx
+// Example: ORP (Optimal Recognition Point) calculation
+const ORP_TABLE = [0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3];
+
+export function getOrpIndex(word: string): number {
+  const len = word.length;
+  if (len > 13) return 4;
+  return ORP_TABLE[len] ?? 0;
+}
+```
+</CodeGroup>
+
+### When to Use RSVP
+
+- Reviewing familiar material quickly
+- Getting through large volumes of text
+- Improving reading speed over time
+- Focus training exercises
+
+<Warning>
+RSVP mode is not recommended for complex technical material that requires frequent re-reading or deep comprehension.
+</Warning>
+
+## Read-Along Mode
+
+Read-along mode combines visual highlighting with text-to-speech, reading the document aloud while highlighting the current sentence.
+
+### Starting Read-Along
+
+1. Click the **Play** button in the bottom toolbar
+2. Choose your preferred reading speed (0.5x - 2.0x)
+3. The document will begin reading automatically
+
+### Text-to-Speech Options
+
+Uxie supports multiple TTS engines with different voice options:
+
+<Tabs>
+  <Tab title="Browser TTS">
+    **Fast, lower quality**
+    
+    Uses your browser's built-in text-to-speech engine. Works offline and starts instantly.
+    
+    Available voices vary by browser and operating system.
+  </Tab>
+  <Tab title="Kokoro AI">
+    **Better quality, first load takes time**
+    
+    High-quality neural voices with natural-sounding speech. The model loads on first use (may take 10-30 seconds).
+    
+    Available voices:
+    - Multiple male and female options
+    - Natural intonation and pacing
+    - Better pronunciation of technical terms
+  </Tab>
+  <Tab title="Supertonic AI">
+    **Faster, decent quality**
+    
+    Balance between quality and speed. Faster than Kokoro with better quality than browser TTS.
+  </Tab>
+</Tabs>
+
+### Reading Controls
+
+<Accordion title="Playback Controls">
+  - **Play/Pause** - Space bar or toolbar button
+  - **Stop** - Stops reading and returns to start
+  - **Skip Forward** - Right arrow (→) to skip to next sentence
+  - **Skip Back** - Left arrow (←) to go to previous sentence
+  - **Speed** - Click speed button to cycle through speeds
+</Accordion>
+
+<Accordion title="Follow Along">
+  When enabled, the PDF automatically scrolls to keep the currently read sentence visible.
+  
+  Toggle by clicking the eye icon or pressing **F**.
+</Accordion>
+
+### Selecting Text to Read
+
+You can start reading from any point in the document:
+
+1. Select text with your mouse
+2. Right-click and choose "Read from here"
+3. Or use the read-along context menu
+
+### When to Use Read-Along
+
+- Learning new material while multitasking
+- Improving pronunciation of technical terms
+- Reducing eye strain during long study sessions
+- Accessibility support
+- Language learning
+
+## Speak-Along Mode (Beta)
+
+Speak-along mode helps you practice pronunciation by reading along with your microphone. The app listens to your voice and advances when you correctly say each word.
+
+### Getting Started
+
+<Steps>
+  <Step title="Enable Microphone">
+    Open Settings and toggle "Speak along (BETA)"
+  </Step>
+  <Step title="Grant Permissions">
+    Allow microphone access when prompted by your browser
+  </Step>
+  <Step title="Start Speaking">
+    Press the microphone button and start reading aloud
+  </Step>
+</Steps>
+
+### Features
+
+<CardGroup cols={2}>
+  <Card title="Voice Recognition" icon="microphone">
+    Automatically detects when you say each word correctly
+  </Card>
+  <Card title="Word Definitions" icon="book">
+    Click the info icon to see definitions and pronunciation
+  </Card>
+  <Card title="Hear Pronunciation" icon="volume">
+    Press Enter to hear the correct pronunciation
+  </Card>
+  <Card title="Manual Navigation" icon="arrows-left-right">
+    Skip forward/back if recognition is inaccurate
+  </Card>
+</CardGroup>
+
+### Keyboard Shortcuts
+
+| Action | Shortcut |
+|--------|----------|
+| Toggle microphone | **Space** |
+| Previous word | **←** |
+| Next word | **→** |
+| Hear pronunciation | **Enter** |
+| Stop | **Esc** |
+
+### Transcript History
+
+Speak-along shows a transcript of recently recognized words, helping you track your progress and verify accurate recognition.
+
+```tsx speak-along.tsx
+// Speak-along uses browser's Speech Recognition API
+const SPEAK_ALONG_STATUS = {
+  IDLE: "Not active",
+  LISTENING: "Actively listening",
+  PAUSED: "Paused",
+  UNSUPPORTED: "Browser doesn't support speech recognition",
+  ERROR: "Error occurred"
+};
+```
+
+### When to Use Speak-Along
+
+- Language learning and pronunciation practice
+- Reading comprehension exercises
+- Speech therapy or accent reduction
+- Engaging with material actively rather than passively
+- Building reading fluency
+
+<Warning>
+Speak-along requires a quiet environment for best results. Background noise may affect word recognition accuracy.
+</Warning>
+
+## Switching Between Modes
+
+All reading modes can be accessed from the Settings menu in the PDF toolbar. You can switch modes at any time without losing your place in the document.
+
+### Best Practices
+
+<Tip>
+**Speed Reading**: Start with RSVP mode at 200 WPM and gradually increase as you get comfortable.
+
+**Comprehension**: Use read-along mode with follow-along enabled for complex material.
+
+**Focus**: Bionic reading helps maintain attention during long documents.
+
+**Practice**: Speak-along is ideal for pronunciation practice and active engagement.
+</Tip>
+
+## Reading Mode Comparison
+
+| Mode | Speed | Comprehension | Active Engagement | Best For |
+|------|-------|---------------|-------------------|----------|
+| Bionic Reading | Normal | High | Low | Long-form reading |
+| RSVP | Very High | Medium | Low | Quick review |
+| Read-Along | Adjustable | High | Low | Multitasking |
+| Speak-Along | Slow | Very High | Very High | Language learning |
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="RSVP text appears blurry">
+    The text display uses a monospace font for optimal alignment. Try adjusting your browser zoom (Ctrl/Cmd + Plus/Minus) for clearer rendering.
+  </Accordion>
+  
+  <Accordion title="TTS voice doesn't load">
+    If using Kokoro or Supertonic voices:
+    1. Wait 30 seconds for the model to download on first use
+    2. Check your internet connection
+    3. Try switching to Browser TTS as a fallback
+  </Accordion>
+  
+  <Accordion title="Speak-along doesn't recognize words">
+    - Ensure your microphone is working and has browser permissions
+    - Speak clearly and at a moderate pace
+    - Use the manual controls (arrow keys) to skip problematic words
+    - Try in a quieter environment
+  </Accordion>
+  
+  <Accordion title="Follow-along scrolling is too jumpy">
+    This is normal - the feature ensures the highlighted text stays visible. You can disable follow-along by pressing F or clicking the eye icon.
+  </Accordion>
+</AccordionGroup>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Keyboard Shortcuts" icon="keyboard" href="/advanced/keyboard-shortcuts">
+    Master all keyboard shortcuts for faster navigation
+  </Card>
+  <Card title="Document Management" icon="folder" href="/advanced/document-management">
+    Learn how to organize and manage your PDFs
+  </Card>
+</CardGroup>

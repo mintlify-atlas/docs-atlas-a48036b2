@@ -1,0 +1,449 @@
+---
+title: OCR (Optical Character Recognition)
+description: Convert scanned PDFs and images into searchable, selectable text using advanced OCR technology
+---
+
+## Overview
+
+Uxie's OCR feature transforms scanned PDFs and image-based documents into fully searchable, selectable text. This unlocks all of Uxie's features - highlighting, text-to-speech, AI chat, and more - for documents that would otherwise be inaccessible.
+
+## What is OCR?
+
+OCR (Optical Character Recognition) is technology that:
+
+- Analyzes images of text
+- Recognizes characters and words
+- Converts them to actual digital text
+- Preserves layout and formatting
+- Makes documents searchable and editable
+
+<CardGroup cols={2}>
+  <Card title="Scanned Documents" icon="scanner">
+    Convert paper scans into digital text
+  </Card>
+  <Card title="Image PDFs" icon="image">
+    Extract text from image-based PDFs
+  </Card>
+  <Card title="Screenshots" icon="camera">
+    Convert screenshot text to selectable format
+  </Card>
+  <Card title="Photos" icon="camera-retro">
+    Extract text from photos of documents
+  </Card>
+</CardGroup>
+
+## When to Use OCR
+
+Use OCR when your PDF:
+
+- Was scanned from paper
+- Has images of text instead of actual text
+- Cannot be selected or searched
+- Doesn't work with text-to-speech
+- Fails to vectorize for AI chat
+
+<Tip>
+  **Quick test**: Try selecting text in your PDF. If you can't select it, you need OCR.
+</Tip>
+
+## Using OCR
+
+### During Upload
+
+<Steps>
+  <Step title="Click Upload">
+    Open the upload modal in your workspace
+  </Step>
+  <Step title="Select File">
+    Choose your scanned PDF (up to 8MB)
+  </Step>
+  <Step title="Enable OCR">
+    Check the **"OCR Pdf"** checkbox
+  </Step>
+  <Step title="Upload">
+    Click upload and wait for processing
+  </Step>
+  <Step title="Processing">
+    "Applying OCR, it might take a while..." message appears
+  </Step>
+  <Step title="Complete">
+    Document opens with fully selectable text
+  </Step>
+</Steps>
+
+<Note>
+  OCR processing time varies by document length and complexity. Expect 30-120 seconds for typical documents.
+</Note>
+
+### Upload Modal Options
+
+The upload interface includes:
+
+```tsx
+<Checkbox id="ocr" checked={doOcr} onCheckedChange={setDoOcr} />
+<label htmlFor="ocr">OCR Pdf</label>
+```
+
+Found at `/src/components/workspace/upload-file-modal.tsx:190`.
+
+## OCR Technology
+
+### Scribe.js Engine
+
+Uxie uses **Scribe.js-OCR**, a powerful browser-based OCR library:
+
+- Runs entirely in your browser
+- No server processing (privacy-friendly)
+- Supports multiple languages
+- Preserves PDF layout
+- High accuracy on printed text
+
+### Processing Modes
+
+Scribe.js offers multiple modes:
+
+<Accordion title="Quality Mode">
+  **Highest accuracy** (default)
+  - Best for final documents
+  - Slower processing
+  - Optimal for important documents
+  - Used by Uxie
+</Accordion>
+
+<Accordion title="Speed Mode">
+  **Faster processing**
+  - Lower accuracy
+  - Good for quick previews
+  - Not currently available in Uxie
+</Accordion>
+
+<Accordion title="Combined Mode">
+  **Hybrid approach**
+  - Combines native PDF text extraction with OCR
+  - Extracts existing text where available
+  - Applies OCR only where needed
+  - Most efficient for mixed documents
+  - Used by Uxie
+</Accordion>
+
+### Configuration
+
+```javascript
+await scribe.recognize({
+  mode: "quality",        // Accuracy level
+  langs: ["eng"],         // Languages to recognize
+  modeAdv: "combined",    // Use both native & OCR
+  vanillaMode: true,      // Standard recognition
+  combineMode: "data",    // How to combine results
+});
+```
+
+From `/src/components/workspace/upload-file-modal.tsx:85`.
+
+## Language Support
+
+Currently supported languages:
+
+- **English** (eng) - Default
+
+<Note>
+  Additional language support is planned for future releases. Scribe.js supports many languages including Spanish, French, German, Chinese, and more.
+</Note>
+
+## Processing Steps
+
+### Behind the Scenes
+
+<Steps>
+  <Step title="File Import">
+    PDF file is loaded into Scribe.js
+  </Step>
+  <Step title="Page Analysis">
+    Each page is analyzed for text regions
+  </Step>
+  <Step title="Text Recognition">
+    OCR engine recognizes characters in each region
+  </Step>
+  <Step title="Layout Preservation">
+    Original formatting and positioning maintained
+  </Step>
+  <Step title="PDF Generation">
+    New PDF created with invisible text layer over images
+  </Step>
+  <Step title="Upload">
+    Processed PDF uploaded to Uxie
+  </Step>
+</Steps>
+
+### What Gets Preserved
+
+✓ **Original images** - Visual appearance unchanged
+✓ **Page layout** - Structure maintained  
+✓ **Text positions** - Words appear in correct locations
+✓ **Font sizes** - Relative sizing preserved
+
+✗ **Original fonts** - Text becomes invisible, images show fonts
+✗ **Exact formatting** - Minor spacing differences possible
+
+## Quality Factors
+
+### Input Document Quality
+
+OCR accuracy depends on:
+
+<CardGroup cols={2}>
+  <Card title="Image Resolution" icon="image">
+    Higher DPI = better recognition (300+ DPI recommended)
+  </Card>
+  <Card title="Text Clarity" icon="eye">
+    Clear, crisp text works best; blurry text may have errors
+  </Card>
+  <Card title="Contrast" icon="circle-half-stroke">
+    High contrast (dark text on light background) improves accuracy
+  </Card>
+  <Card title="Font Type" icon="font">
+    Standard fonts work better than handwriting or decorative fonts
+  </Card>
+</CardGroup>
+
+### Challenging Cases
+
+<Warning>
+  OCR may struggle with:
+  - Handwritten text
+  - Very small fonts (< 8pt)
+  - Low-resolution scans (< 200 DPI)
+  - Colored or patterned backgrounds
+  - Unusual fonts or typography
+  - Complex mathematical notation
+  - Tables with fine lines
+  - Multi-column layouts
+</Warning>
+
+## After OCR Processing
+
+### Enabled Features
+
+Once OCR is complete, you can:
+
+✓ **Select and copy text** - Highlight any text in the document
+✓ **Search** - Find specific words or phrases
+✓ **Text-to-Speech** - Listen to the document read aloud
+✓ **Highlight** - Create annotations and notes
+✓ **AI Chat** - Ask questions about the content
+✓ **Flashcards** - Generate study cards from content
+
+### Quality Check
+
+After OCR, verify quality:
+
+1. Try selecting text in various areas
+2. Check for garbled or missing characters
+3. Test text-to-speech on a paragraph
+4. Search for a known word or phrase
+
+If quality is poor, try:
+- Re-scanning the original at higher DPI
+- Improving image contrast
+- Using a cleaner source document
+
+## Technical Implementation
+
+### Import and Initialization
+
+```typescript
+import scribe from "scribe.js-ocr";
+
+// Configure display mode
+scribe.opt.displayMode = "invis";
+
+// Import files
+await scribe.importFiles(files);
+
+// Perform recognition  
+await scribe.recognize({ /* config */ });
+
+// Export processed PDF
+const data = await scribe.exportData("pdf");
+```
+
+From `/src/components/workspace/upload-file-modal.tsx:27`.
+
+### File Handling
+
+```typescript
+onBeforeUploadBegin: async (files) => {
+  if (doOcr) {
+    setIsOcring(true);
+    
+    await scribe.importFiles(files);
+    await scribe.recognize({ /* ... */ });
+    
+    const data = await scribe.exportData("pdf");
+    const blob = new Blob([data], { type: "application/pdf" });
+    const file = new File([blob], originalName, {
+      type: "application/pdf"
+    });
+    
+    setIsOcring(false);
+    return [file];
+  }
+  return files;
+}
+```
+
+The OCR process happens before upload, ensuring the processed file is what gets stored.
+
+### Display Mode
+
+```javascript
+scribe.opt.displayMode = "invis";
+```
+
+Sets the OCR'd text layer to invisible, preserving the original visual appearance while enabling text selection.
+
+## Performance
+
+### Processing Time
+
+Typical OCR times:
+
+- **1-5 pages**: 10-30 seconds
+- **6-20 pages**: 30-90 seconds  
+- **21-50 pages**: 90-180 seconds
+- **50+ pages**: 3-5 minutes+
+
+<Note>
+  Processing happens in your browser, so times vary based on your computer's CPU and RAM.
+</Note>
+
+### Browser Requirements
+
+OCR requires:
+
+- Modern browser (Chrome, Edge, Firefox, Safari)
+- Sufficient RAM (4GB+ recommended)
+- JavaScript enabled
+- IndexedDB support
+
+### Memory Usage
+
+<Warning>
+  OCR is memory-intensive. Close other tabs and applications when processing large documents to avoid browser slowdowns or crashes.
+</Warning>
+
+## Best Practices
+
+<Tip>
+  **Scan at 300 DPI**: This is the sweet spot for quality vs. file size.
+</Tip>
+
+<Tip>
+  **Black and white scans**: Color isn't needed for text and increases file size.
+</Tip>
+
+<Tip>
+  **Clean source documents**: Remove smudges, folds, and marks before scanning.
+</Tip>
+
+<Tip>
+  **Check before uploading**: Verify your scan is clear and straight.
+</Tip>
+
+<Tip>
+  **Small batches**: OCR a few pages first to verify quality before doing an entire book.
+</Tip>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="OCR is taking forever">
+    - Large documents take time (this is normal)
+    - Check browser memory usage
+    - Close other tabs and applications
+    - Try a smaller document first
+    - Refresh page and try again if stuck
+  </Accordion>
+  
+  <Accordion title="OCR failed / error message">
+    - File may be corrupted
+    - File size may exceed limits
+    - Browser may be out of memory
+    - Try refreshing and re-uploading
+    - Try a different browser
+  </Accordion>
+  
+  <Accordion title="Text is garbled or incorrect">
+    - Source image quality may be poor
+    - Try re-scanning at higher resolution
+    - Ensure adequate contrast
+    - Check if language is supported
+  </Accordion>
+  
+  <Accordion title="Some text is missing">
+    - Text may be in unsupported language
+    - Font may be too small or decorative
+    - Image may have low contrast in that area
+    - Try manually typing missing sections
+  </Accordion>
+  
+  <Accordion title="Can't select text after OCR">
+    - OCR may have failed silently
+    - Try the process again
+    - Check browser console for errors
+    - Verify the "OCR Pdf" checkbox was selected
+  </Accordion>
+</AccordionGroup>
+
+## Limitations
+
+<Warning>
+  Current limitations:
+  - Maximum file size: 8MB
+  - Single language per document (English only currently)
+  - No handwriting recognition
+  - Processing happens locally (no cloud acceleration)
+  - No batch processing UI
+  - Cannot OCR existing uploaded documents (must re-upload)
+</Warning>
+
+## Privacy & Security
+
+<Accordion title="Where is OCR performed?">
+  **Entirely in your browser**. No document data is sent to external servers for OCR processing. Scribe.js runs locally on your computer.
+</Accordion>
+
+<Accordion title="Is my document stored during OCR?">
+  Only the final processed PDF is uploaded to Uxie's servers. The OCR processing happens in temporary browser memory and is discarded after completion.
+</Accordion>
+
+<Accordion title="Can others see my OCR'd documents?">
+  Only if you explicitly share them. OCR'd documents have the same privacy settings as any other Uxie document.
+</Accordion>
+
+## Future Enhancements
+
+<Note>
+  Planned features:
+  - Multi-language support
+  - OCR existing uploaded documents
+  - Batch OCR processing
+  - Manual text correction UI
+  - OCR quality preview before upload
+  - Cloud OCR option for faster processing
+  - Handwriting recognition
+</Note>
+
+## Related Features
+
+<CardGroup cols={3}>
+  <Card title="PDF Reading" icon="file-pdf" href="/features/pdf-reading">
+    Read OCR'd documents
+  </Card>
+  <Card title="Text-to-Speech" icon="volume" href="/features/text-to-speech">
+    Listen to OCR'd text
+  </Card>
+  <Card title="AI Chat" icon="messages" href="/features/ai-chat">
+    Ask questions about OCR'd content
+  </Card>
+</CardGroup>

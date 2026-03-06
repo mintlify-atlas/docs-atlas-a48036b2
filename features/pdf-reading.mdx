@@ -1,0 +1,187 @@
+---
+title: PDF Reading
+description: Advanced PDF viewing with zoom, navigation, and customization controls for an optimal reading experience
+---
+
+## Overview
+
+Uxie's PDF reader provides a powerful, intuitive interface for reading and interacting with PDF documents. Built on modern web technologies, it offers smooth navigation, flexible viewing options, and seamless integration with all other Uxie features.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Smart Navigation" icon="compass">
+    Navigate through documents with page controls, keyboard shortcuts, and quick jump functionality
+  </Card>
+  <Card title="Flexible Zoom" icon="magnifying-glass">
+    Adjust zoom levels from 50% to 200% for comfortable reading at any screen size
+  </Card>
+  <Card title="Custom Backgrounds" icon="palette">
+    Choose from multiple background colors to reduce eye strain and match your preferences
+  </Card>
+  <Card title="Link Control" icon="link">
+    Enable or disable PDF hyperlinks to prevent accidental navigation
+  </Card>
+</CardGroup>
+
+## Getting Started
+
+### Uploading a PDF
+
+1. Click the **Upload** button in your workspace
+2. Either:
+   - Drag and drop a PDF file (up to 8MB)
+   - Enter a URL pointing to a PDF
+   - Select a file from your computer
+3. Wait for the upload to complete
+4. Your PDF will open automatically in the reader
+
+<Note>
+  The maximum file size is 8MB for standard uploads. Page limits depend on your subscription plan.
+</Note>
+
+### Basic Navigation
+
+#### Page Controls
+
+The bottom toolbar provides comprehensive page navigation:
+
+- **Previous/Next buttons**: Navigate one page at a time
+- **Page input field**: Jump directly to any page number
+- **Page indicator**: Shows current page and total page count
+
+#### Keyboard Shortcuts
+
+<Accordion title="Essential Keyboard Shortcuts">
+  - **Arrow Keys**: Navigate between pages
+  - **Ctrl/Cmd + Plus/Minus**: Zoom in/out
+  - **Escape**: Close popups and deselect text
+  - **Enter**: Confirm page jump in navigation input
+</Accordion>
+
+## Viewing Controls
+
+### Zoom Functionality
+
+The zoom controls allow you to adjust the document size for optimal readability:
+
+- Click the **zoom buttons** in the toolbar to increase or decrease zoom
+- Available zoom levels: 50%, 75%, 100%, 125%, 150%, 175%, 200%
+- Zoom changes apply immediately without page reload
+
+<Tip>
+  Use 125% or 150% zoom for extended reading sessions to reduce eye strain on high-resolution displays.
+</Tip>
+
+### Background Colors
+
+Customize your reading environment with different background colors:
+
+<Steps>
+  <Step title="Open Settings">
+    Click the background color button in the bottom toolbar
+  </Step>
+  <Step title="Choose Color">
+    Select from available options:
+    - White (default)
+    - Sepia (warm, paper-like)
+    - Dark (for low-light reading)
+    - Custom colors
+  </Step>
+  <Step title="Apply">
+    The color changes instantly across all pages
+  </Step>
+</Steps>
+
+## Document Management
+
+### Editing Document Title
+
+As a document owner or editor:
+
+1. Click on the document title at the top of the viewer
+2. Type your new title
+3. Press **Enter** to save or **Escape** to cancel
+
+<Note>
+  Viewers cannot edit document titles. Only owners and editors have this permission.
+</Note>
+
+### Link Behavior
+
+Control how hyperlinks in PDFs behave:
+
+- **Links enabled** (default): Clickable links navigate to destinations
+- **Links disabled**: Links cannot be clicked, preventing accidental navigation during text selection and highlighting
+
+This is particularly useful when working with documents that have many embedded links.
+
+## Technical Details
+
+### Implementation
+
+The PDF reader is built using:
+
+- **react-pdf-highlighter**: Core PDF rendering and interaction (`/src/components/pdf-reader/reader.tsx:8`)
+- **PDF.js**: Mozilla's PDF rendering engine
+- **Custom toolbar**: React components for navigation and settings (`/src/components/pdf-reader/toolbar/index.tsx`)
+
+### Performance
+
+- Pages are rendered on-demand as you scroll
+- Zoom operations are optimized for smooth performance
+- Last read page is automatically saved and restored
+
+### Browser Compatibility
+
+Uxie's PDF reader works in all modern browsers:
+
+- Chrome/Edge (recommended)
+- Firefox
+- Safari
+- Opera
+
+<Warning>
+  Internet Explorer is not supported. Please use a modern browser for the best experience.
+</Warning>
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Annotations" icon="highlighter" href="/features/annotations">
+    Highlight and annotate your PDFs
+  </Card>
+  <Card title="Text-to-Speech" icon="volume" href="/features/text-to-speech">
+    Listen to your documents
+  </Card>
+  <Card title="Note Taking" icon="note-sticky" href="/features/note-taking">
+    Take notes alongside your reading
+  </Card>
+  <Card title="AI Chat" icon="messages" href="/features/ai-chat">
+    Ask questions about your document
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="PDF won't load">
+    - Check that the file is a valid PDF
+    - Ensure the file size is under 8MB
+    - Try refreshing the page
+    - Check your internet connection
+  </Accordion>
+  
+  <Accordion title="Zoom is too slow">
+    - Close other browser tabs to free up memory
+    - Disable browser extensions that might interfere
+    - Try a smaller zoom level (e.g., 100% or 125%)
+  </Accordion>
+  
+  <Accordion title="Pages appear blank">
+    - Wait a moment for pages to render
+    - Check browser console for errors
+    - Try refreshing the page
+    - Ensure JavaScript is enabled
+  </Accordion>
+</AccordionGroup>

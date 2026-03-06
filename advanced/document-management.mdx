@@ -1,0 +1,481 @@
+---
+title: "Document Management"
+description: "Learn how to upload, organize, share, and manage your PDF documents in Uxie."
+---
+
+Uxie provides a comprehensive document management system that makes it easy to organize your PDF library, collaborate with others, and keep track of your reading progress.
+
+## Uploading Documents
+
+There are two ways to add PDFs to your Uxie library:
+
+<CardGroup cols={2}>
+  <Card title="File Upload" icon="upload">
+    Upload PDF files directly from your computer
+  </Card>
+  <Card title="URL Import" icon="link">
+    Import PDFs from URLs, Google Drive, or Dropbox
+  </Card>
+</CardGroup>
+
+### Upload from Computer
+
+<Steps>
+  <Step title="Open Upload Modal">
+    Click the **Upload File** button on your library page
+  </Step>
+  <Step title="Select PDF">
+    Drag and drop a PDF or click to browse your files
+  </Step>
+  <Step title="Optional: Enable OCR">
+    Check "OCR PDF" to make scanned documents searchable
+  </Step>
+  <Step title="Upload">
+    Click the Upload button to process your file
+  </Step>
+</Steps>
+
+<Accordion title="File Upload Requirements">
+- **File type**: PDF only
+- **Maximum size**: 8MB
+- **Page limit**: Varies by plan (see AI features section)
+- **Quantity**: One file at a time
+</Accordion>
+
+### Upload from URL
+
+Importing from URL is ideal for online documents or cloud storage:
+
+1. Open the upload modal
+2. Scroll to "Import from URL" section
+3. Paste the PDF URL
+4. Click Upload
+
+<Tip>
+**Supported URL Sources:**
+- Direct PDF links (ending in .pdf)
+- Google Drive share links
+- Dropbox public links
+- Any publicly accessible PDF URL
+
+For Google Drive/Dropbox, ensure the link has public view permissions.
+</Tip>
+
+<Note>
+When importing from URL, only the URL is stored - not the file itself. The PDF loads from the original source each time you open it.
+</Note>
+
+### OCR Processing
+
+OCR (Optical Character Recognition) converts scanned PDFs into searchable, selectable documents:
+
+<CodeGroup>
+```tsx upload-file-modal.tsx
+// OCR processing with Scribe.js
+await scribe.importFiles(files);
+await scribe.recognize({
+  mode: "quality",
+  langs: ["eng"],
+  modeAdv: "combined",
+  vanillaMode: true,
+  combineMode: "data",
+});
+
+const data = await scribe.exportData("pdf");
+```
+</CodeGroup>
+
+<Warning>
+OCR processing can take 30-60 seconds depending on the document size. The upload modal will show "Applying OCR, it might take a while..." during processing.
+</Warning>
+
+#### When to Use OCR
+
+- Scanned documents or images of text
+- PDFs that don't allow text selection
+- Documents where search doesn't work
+- Photos of book pages or handwritten notes
+
+## Your Document Library
+
+The library page (`/f`) displays all your uploaded and shared documents.
+
+### Library Features
+
+<Tabs>
+  <Tab title="Search">
+    Use the search bar to filter documents by filename. The search is instant and case-insensitive.
+    
+    ```tsx
+    // Search filters documents by title
+    const filteredDocs = docs.filter((doc) =>
+      doc.title.toLowerCase().includes(query.toLowerCase())
+    );
+    ```
+  </Tab>
+  <Tab title="Document Cards">
+    Each document shows:
+    - Cover image (first page thumbnail)
+    - Document title
+    - Reading progress ring
+    - AI vectorization status (✨ sparkle icon)
+    - Collaboration badge (if shared)
+  </Tab>
+  <Tab title="Progress Tracking">
+    The circular progress indicator shows how much you've read:
+    - Calculated from last read page / total pages
+    - Updates automatically as you read
+    - Hover to see exact percentage
+  </Tab>
+</Tabs>
+
+### Document Card Information
+
+<CardGroup cols={2}>
+  <Card title="Reading Progress" icon="circle-notch">
+    Visual ring showing % of document read
+  </Card>
+  <Card title="AI Status" icon="sparkles">
+    Sparkle icon - filled if vectorized for AI features
+  </Card>
+  <Card title="Collaboration" icon="users">
+    "Collab" badge if shared with others
+  </Card>
+  <Card title="Cover Image" icon="image">
+    Thumbnail of first page
+  </Card>
+</CardGroup>
+
+<CodeGroup>
+```tsx doc-card.tsx
+// Progress calculation
+const showProgress = lastReadPage !== null && pageCount > 0;
+const readingProgress = showProgress
+  ? Math.round((lastReadPage / pageCount) * 100)
+  : 0;
+```
+</CodeGroup>
+
+## Opening Documents
+
+Click any document card to open it in the full reader interface:
+
+```
+/f → Library page
+/f/[docId] → Document viewer
+```
+
+The app automatically:
+- Loads your last read page
+- Restores your note-taking tab
+- Maintains your zoom and display settings
+- Syncs reading progress
+
+<Tip>
+Uxie remembers your last read page. When you return to a document, it automatically scrolls to where you left off.
+</Tip>
+
+## Collaboration Features
+
+Share documents with others and collaborate on notes in real-time.
+
+### Inviting Collaborators
+
+<Steps>
+  <Step title="Open Document">
+    Navigate to the document you want to share
+  </Step>
+  <Step title="Click Invite Button">
+    In the right sidebar, click the collaborate icon (visible only to document owners)
+  </Step>
+  <Step title="Enter Email Address">
+    Type the email of the person you want to invite
+  </Step>
+  <Step title="Set Permissions">
+    Choose view-only or edit permissions
+  </Step>
+  <Step title="Send Invitation">
+    The collaborator receives an email invitation
+  </Step>
+</Steps>
+
+### Collaboration Permissions
+
+<Tabs>
+  <Tab title="Owner">
+    **Full Control**
+    - Upload and delete documents
+    - Invite collaborators
+    - Edit notes
+    - Change all settings
+    - Manage permissions
+  </Tab>
+  <Tab title="Editor">
+    **Can Edit**
+    - Edit shared notes
+    - Add highlights
+    - Chat with PDF
+    - Generate flashcards
+    - Cannot invite others or delete document
+  </Tab>
+  <Tab title="Viewer">
+    **Read Only**
+    - View document and notes
+    - Cannot edit or add content
+    - Cannot invite others
+  </Tab>
+</Tabs>
+
+<Note>
+Notes are collaborative by default when you share a document. All editors can see and edit the same notes in real-time using the BlockNote collaboration system.
+</Note>
+
+### Real-Time Collaboration
+
+When multiple users have a document open:
+
+- Changes sync instantly across all sessions
+- Each user has a colored cursor
+- You can see who else is viewing/editing
+- Conflicts are automatically resolved
+
+<CodeGroup>
+```tsx collaboration-client.tsx
+// Real-time collaboration powered by Liveblocks
+import { LiveblocksProvider } from "@liveblocks/react";
+
+// Each document has a unique room for collaboration
+const room = useRoom();
+const yDoc = new Y.Doc();
+const yProvider = new LiveblocksProvider(room, yDoc);
+```
+</CodeGroup>
+
+## Document Organization
+
+### Sorting and Filtering
+
+While Uxie doesn't currently have folders or tags, you can organize documents using:
+
+1. **Search** - Quick filter by filename
+2. **Naming conventions** - Use prefixes like "[Course]" or "[Project]"
+3. **Browser bookmarks** - Bookmark specific documents
+
+<Tip>
+Use descriptive filenames before uploading:
+- `CS101-Lecture-Notes-Week5.pdf`
+- `[Research] Machine Learning Survey 2024.pdf`
+- `Project_Proposal_Final_v2.pdf`
+</Tip>
+
+### Upload Limits by Plan
+
+<Tabs>
+  <Tab title="Free Plan">
+    - **Maximum documents**: Varies by plan
+    - **Page limit for AI**: Check your plan details
+    - **File size**: 8MB per document
+    - **Collaboration**: Basic features
+  </Tab>
+  <Tab title="Paid Plans">
+    - **More documents**: Higher document limits
+    - **Larger AI support**: More pages per document
+    - **Same file size**: 8MB per document
+    - **Advanced collaboration**: Additional features
+  </Tab>
+</Tabs>
+
+<CodeGroup>
+```tsx upload-file-modal.tsx
+// Upload limits enforced per plan
+if (docsCount >= PLANS[userPlan].maxDocs) {
+  toast.error("Upload limit exceeded", {
+    description: `Upgrade to upload more than ${allowedDocsCount} documents.`,
+  });
+  return;
+}
+```
+</CodeGroup>
+
+<Warning>
+If you reach your document limit, you'll need to upgrade your plan or delete existing documents to upload new ones.
+</Warning>
+
+## Exporting Notes
+
+Download your notes as Markdown files for use in other applications.
+
+### Export Markdown
+
+<Steps>
+  <Step title="Open Document">
+    Navigate to any document with notes
+  </Step>
+  <Step title="Click Download Icon">
+    In the right sidebar header, click the download button
+  </Step>
+  <Step title="Save File">
+    Your notes are saved as `notes.md`
+  </Step>
+</Steps>
+
+The exported Markdown includes:
+- All formatted text
+- Headings and structure
+- Lists and checkboxes
+- Code blocks
+- Links
+
+<CodeGroup>
+```tsx sidebar.tsx
+// Export notes as markdown
+const handleDownloadMarkdown = async () => {
+  const markdownContent = await editor.blocksToMarkdownLossy(
+    editor.document
+  );
+  const blob = new Blob([markdownContent], { type: "text/markdown" });
+  saveAs(blob, "notes.md");
+};
+```
+</CodeGroup>
+
+<Tip>
+Exported Markdown files are compatible with:
+- Obsidian
+- Notion
+- VS Code
+- GitHub/GitLab
+- Any text editor
+</Tip>
+
+## AI Vectorization
+
+Documents under your plan's page limit are automatically vectorized for AI features.
+
+### What is Vectorization?
+
+Vectorization converts your PDF into a searchable AI database that enables:
+
+- **Semantic search** - Find content by meaning, not just keywords
+- **Document chat** - Ask questions about the entire document
+- **Smart summaries** - Context-aware summarization
+- **Better AI completion** - Notes AI has document context
+
+### Vectorization Status
+
+Check if a document is vectorized:
+
+1. Look for the sparkle icon (✨) on the document card
+2. **Filled sparkle** = Vectorized
+3. **Gray sparkle** = Not vectorized
+
+<Note>
+Vectorization happens automatically in the background after upload. It may take a few minutes depending on document size.
+</Note>
+
+### Benefits of Vectorized Documents
+
+<CardGroup cols={2}>
+  <Card title="Enhanced Chat" icon="message">
+    Chat feature can reference specific sections and pages
+  </Card>
+  <Card title="Better Flashcards" icon="cards">
+    AI generates more relevant flashcard questions
+  </Card>
+  <Card title="Smarter Notes" icon="brain">
+    AI completion understands document context
+  </Card>
+  <Card title="Semantic Search" icon="magnifying-glass">
+    Find content by meaning, not just keywords
+  </Card>
+</CardGroup>
+
+## Document Settings
+
+Each document maintains individual settings:
+
+- **Last read page** - Auto-saved as you navigate
+- **Zoom level** - Persisted across sessions
+- **Background color** - White, cream, or custom
+- **Reading mode preferences** - TTS voice, speed, etc.
+
+<Tip>
+Settings are stored globally across devices when you're logged in, so your preferences follow you everywhere.
+</Tip>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Upload fails">
+    Common causes:
+    - File exceeds 8MB limit
+    - File is not a valid PDF
+    - Network connection issues
+    - You've reached your plan's document limit
+    
+    Try compressing the PDF or splitting it into smaller files.
+  </Accordion>
+  
+  <Accordion title="URL import doesn't work">
+    Ensure:
+    - URL points directly to a PDF file
+    - The PDF is publicly accessible (not behind a login)
+    - For Google Drive: Link sharing is set to "Anyone with the link"
+    - The URL starts with `https://`
+  </Accordion>
+  
+  <Accordion title="Document doesn't open">
+    - Check your internet connection (for URL imports)
+    - Try refreshing the page
+    - Check if you still have access (for shared documents)
+    - Contact support if the issue persists
+  </Accordion>
+  
+  <Accordion title="Reading progress not saving">
+    - Ensure you're logged in
+    - Progress saves automatically every 2 seconds
+    - Check your browser's local storage isn't disabled
+    - Try opening the document again
+  </Accordion>
+  
+  <Accordion title="Collaborator can't see changes">
+    - Both users need to be online
+    - Try refreshing the page
+    - Check that edit permissions were granted
+    - Ensure the document is shared with the correct email
+  </Accordion>
+  
+  <Accordion title="OCR takes too long">
+    OCR processing can take 1-2 minutes for large documents. This is normal. If it fails:
+    - Try uploading without OCR first
+    - Check file isn't corrupted
+    - Ensure stable internet connection
+  </Accordion>
+</AccordionGroup>
+
+## Best Practices
+
+<Tip>
+**Document Organization Tips:**
+
+1. Use clear, descriptive filenames before uploading
+2. Add prefixes or tags in square brackets: `[Course] Topic.pdf`
+3. Keep related documents with similar naming patterns
+4. Regularly export notes as backups
+5. Use collaboration for group projects or study groups
+6. Enable OCR for scanned documents immediately
+</Tip>
+
+## Related Features
+
+<CardGroup cols={3}>
+  <Card title="Note-Taking" icon="note" href="/features/note-taking">
+    Learn about the collaborative note editor
+  </Card>
+  <Card title="Chat with PDF" icon="comments" href="/features/ai-chat">
+    Ask questions about your documents
+  </Card>
+  <Card title="Reading Modes" icon="book-open" href="/advanced/reading-modes">
+    Explore different ways to read documents
+  </Card>
+</CardGroup>

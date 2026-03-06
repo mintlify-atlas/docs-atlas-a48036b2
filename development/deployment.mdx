@@ -1,0 +1,651 @@
+---
+title: "Deployment Guide"
+description: "Deploy Uxie to production with Vercel, manage environment variables, and handle database migrations"
+---
+
+# Deployment Guide
+
+Uxie is designed to deploy seamlessly to Vercel with minimal configuration. This guide covers production deployment, environment setup, database migrations, and troubleshooting.
+
+## Deploying to Vercel
+
+### Quick Deploy
+
+The fastest way to deploy Uxie:
+
+<Steps>
+  <Step title="Import Repository">
+    1. Go to [vercel.com](https://vercel.com/) and sign in
+    2. Click **Add New → Project**
+    3. Import your Git repository (GitHub, GitLab, or Bitbucket)
+  </Step>
+  
+  <Step title="Configure Environment Variables">
+    Add all required environment variables (see section below)
+  </Step>
+  
+  <Step title="Deploy">
+    Click **Deploy** and Vercel will:
+    - Install dependencies
+    - Run type checking
+    - Build the application
+    - Deploy to production
+  </Step>
+</Steps>
+
+### Vercel Configuration
+
+Uxie uses default Vercel settings with Next.js 14. No `vercel.json` required.
+
+**Build Settings:**
+
+- **Framework Preset:** Next.js
+- **Build Command:** `next build` (default)
+- **Output Directory:** `.next` (default)
+- **Install Command:** `pnpm install`
+- **Node Version:** 18.x (recommended)
+
+<Accordion title="Override Package Manager">
+To use pnpm (recommended):
+
+1. Go to **Project Settings → General**
+2. Set **Install Command** to `pnpm install`
+3. Vercel will auto-detect `pnpm-lock.yaml`
+</Accordion>
+
+### Automatic Deployments
+
+<CardGroup cols={2}>
+  <Card title="Production" icon="rocket">
+    - Triggered by pushes to `main` branch
+    - Uses production environment variables
+    - Deployed to `uxie.vercel.app`
+  </Card>
+  
+  <Card title="Preview" icon="eye">
+    - Triggered by PRs and branch pushes
+    - Uses preview environment variables
+    - Unique URL per deployment
+    - Great for testing before merge
+  </Card>
+</CardGroup>
+
+## Environment Variables
+
+### Required Production Variables
+
+Add these in **Vercel Dashboard → Settings → Environment Variables**:
+
+<Accordion title="Database">
+```bash
+DATABASE_URL="postgresql://user:password@host:port/database"
+```
+
+**Important:** Use your production Supabase database URL, not localhost.
+
+Enable connection pooling for serverless:
+```bash
+DATABASE_URL="postgresql://user:password@host:port/database?pgbouncer=true"
+```
+</Accordion>
+
+<Accordion title="Authentication">
+```bash
+NEXTAUTH_SECRET="<generate-with-openssl-rand>"
+NEXTAUTH_URL="https://uxie.vercel.app"
+
+GOOGLE_CLIENT_ID="your-client-id.apps.googleusercontent.com"
+GOOGLE_CLIENT_SECRET="your-client-secret"
+```
+
+**Important:** Update Google OAuth redirect URIs to include:
+- `https://uxie.vercel.app/api/auth/callback/google`
+</Accordion>
+
+<Accordion title="File Upload">
+```bash
+UPLOADTHING_TOKEN="your-production-token"
+```
+
+Create a separate UploadThing app for production to isolate uploads.
+</Accordion>
+
+<Accordion title="AI Services">
+```bash
+# Pinecone (Vector Database)
+PINECONE_API_KEY="your-api-key"
+PINECONE_ENVIRONMENT="your-environment"
+
+# HuggingFace (Embeddings)
+HUGGINGFACE_API_KEY="hf_..."
+
+# Google Gemini (LLM)
+GOOGLE_GENERATIVE_AI_API_KEY="your-api-key"
+```
+
+**Cost Considerations:**
+- HuggingFace: Free tier sufficient for moderate usage
+- Pinecone: Free tier includes 1 index with 100k vectors
+- Google Gemini: Pay-per-token, 2.5 Flash is cost-effective
+</Accordion>
+
+<Accordion title="Optional Services">
+```bash
+# Liveblocks (Collaboration - currently disabled)
+NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_API_KEY="pk_..."
+
+# Node Environment
+NODE_ENV="production"
+```
+</Accordion>
+
+### Environment Variable Security
+
+<CardGroup cols={2}>
+  <Card title="Sensitive Keys" icon="lock">
+    Never commit `.env` to git.
+    
+    Ensure `.gitignore` includes:
+    ```
+    .env
+    .env.local
+    .env.*.local
+    ```
+  </Card>
+  
+  <Card title="Public Variables" icon="globe">
+    Only `NEXT_PUBLIC_*` variables are exposed to browser.
+    
+    Keep API keys private unless intentionally public.
+  </Card>
+</CardGroup>
+
+### Managing Multiple Environments
+
+Vercel supports three environments:
+
+| Environment | Branch | Use Case |
+|------------|--------|----------|
+| Production | `main` | Live app for users |
+| Preview | Any branch | Testing PRs |
+| Development | Local | Local development |
+
+Set variables per environment in Vercel dashboard.
+
+## Database Migrations
+
+### Initial Production Setup
+
+<Steps>
+  <Step title="Create Production Database">
+    1. Create new Supabase project for production
+    2. Note connection string
+    3. Enable connection pooling
+  </Step>
+  
+  <Step title="Run Migrations Locally">
+    Set production database URL temporarily:
+    
+    ```bash
+    export DATABASE_URL="postgresql://..."
+    pnpm prisma migrate deploy
+    ```
+    
+    Or push schema directly:
+    ```bash
+    pnpm prisma db push
+    ```
+  </Step>
+  
+  <Step title="Verify Schema">
+    Check schema with Prisma Studio:
+    ```bash
+    pnpm prisma studio
+    ```
+  </Step>
+</Steps>
+
+<Accordion title="Prisma Migration Commands">
+**Development:**
+```bash
+# Create migration and apply
+pnpm prisma migrate dev --name add_summary_field
+```
+
+**Production:**
+```bash
+# Apply pending migrations
+pnpm prisma migrate deploy
+```
+
+**Schema Push (for prototyping):**
+```bash
+# Push schema changes without migration files
+pnpm prisma db push
+```
+
+**Warning:** `db push` can cause data loss. Use migrations in production.
+</Accordion>
+
+### Automated Migrations
+
+Add migration script to `package.json`:
+
+```json
+{
+  "scripts": {
+    "postinstall": "prisma generate",
+    "build": "prisma generate && prisma migrate deploy && next build"
+  }
+}
+```
+
+Vercel runs these during build:
+1. Generate Prisma Client
+2. Apply pending migrations
+3. Build Next.js app
+
+### Schema Changes Workflow
+
+<Steps>
+  <Step title="Develop Locally">
+    1. Modify `schema.prisma`
+    2. Run `pnpm prisma migrate dev --name description`
+    3. Test locally
+  </Step>
+  
+  <Step title="Commit Changes">
+    Commit:
+    - `prisma/schema.prisma`
+    - `prisma/migrations/` directory
+    
+    ```bash
+    git add prisma/
+    git commit -m "feat: add summary field to documents"
+    ```
+  </Step>
+  
+  <Step title="Deploy">
+    Push to main branch.
+    
+    Vercel will:
+    - Run migrations automatically
+    - Build and deploy
+  </Step>
+</Steps>
+
+## Build Optimization
+
+### Environment-Specific Optimizations
+
+**next.config.mjs** includes production optimizations:
+
+```javascript
+const config = {
+  reactStrictMode: true,
+  swcMinify: true,  // Fast minification
+  images: {
+    domains: ["lh3.googleusercontent.com", "utfs.io"],
+  },
+};
+```
+
+### Bundle Analysis
+
+Analyze bundle size:
+
+```bash
+npm install -g @next/bundle-analyzer
+```
+
+Add to `next.config.mjs`:
+```javascript
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
+module.exports = withBundleAnalyzer(config);
+```
+
+Run:
+```bash
+ANALYZE=true pnpm build
+```
+
+### Edge Runtime Support
+
+Some API routes use edge runtime for low latency:
+
+```typescript
+export const runtime = 'edge';
+export const maxDuration = 30;
+```
+
+Currently used in:
+- `/api/chat` - AI chat streaming
+- `/api/completion` - Text completion
+- `/api/evaluate` - Flashcard evaluation
+
+## Monitoring & Troubleshooting
+
+### Vercel Analytics
+
+Enable in project settings:
+
+1. **Web Analytics** - Page views, performance
+2. **Speed Insights** - Core Web Vitals
+3. **Log Drains** - Export logs to external services
+
+### Error Tracking
+
+<CardGroup cols={2}>
+  <Card title="Build Errors" icon="hammer">
+    View in Vercel deployment logs:
+    - TypeScript errors
+    - Linting errors
+    - Build failures
+  </Card>
+  
+  <Card title="Runtime Errors" icon="bug">
+    View in Vercel Functions logs:
+    - API route errors
+    - Server-side errors
+    - Database connection issues
+  </Card>
+</CardGroup>
+
+### Common Production Issues
+
+<Accordion title="Database Connection Timeout">
+**Problem:** Serverless functions timeout connecting to database.
+
+**Solution:** Enable connection pooling in Supabase:
+
+1. Get pooled connection string from Supabase dashboard
+2. Update `DATABASE_URL` in Vercel
+3. Redeploy
+
+```bash
+DATABASE_URL="postgresql://...?pgbouncer=true"
+```
+</Accordion>
+
+<Accordion title="Environment Variable Not Found">
+**Problem:** Build fails with missing environment variable.
+
+**Solution:**
+
+1. Check Vercel dashboard → Settings → Environment Variables
+2. Ensure variable is set for correct environment (Production/Preview)
+3. Redeploy
+
+Verify with:
+```typescript
+// src/env.mjs
+import { createEnv } from "@t3-oss/env-nextjs";
+
+export const env = createEnv({
+  server: {
+    DATABASE_URL: z.string().url(),
+    // ... all required variables
+  },
+});
+```
+</Accordion>
+
+<Accordion title="Prisma Client Not Generated">
+**Problem:** Build fails with "Cannot find module '@prisma/client'".
+
+**Solution:** Ensure `postinstall` script runs:
+
+```json
+{
+  "scripts": {
+    "postinstall": "prisma generate"
+  }
+}
+```
+
+Vercel runs this automatically after `pnpm install`.
+</Accordion>
+
+<Accordion title="OAuth Redirect URI Mismatch">
+**Problem:** Google OAuth fails with redirect URI error.
+
+**Solution:** Update Google Cloud Console:
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com/)
+2. APIs & Services → Credentials
+3. Edit OAuth 2.0 Client
+4. Add authorized redirect URI:
+   ```
+   https://uxie.vercel.app/api/auth/callback/google
+   ```
+5. Save and wait 5 minutes for propagation
+</Accordion>
+
+<Accordion title="Rate Limiting Issues">
+**Problem:** AI features fail with 429 errors.
+
+**Solution:** Implement rate limiting:
+
+1. Install Upstash Redis:
+   ```bash
+   pnpm add @upstash/redis @upstash/ratelimit
+   ```
+
+2. Add to API routes:
+   ```typescript
+   import { Ratelimit } from "@upstash/ratelimit";
+   import { Redis } from "@upstash/redis";
+   
+   const ratelimit = new Ratelimit({
+     redis: Redis.fromEnv(),
+     limiter: Ratelimit.slidingWindow(10, "1 h"),
+   });
+   ```
+
+3. Add Upstash environment variables to Vercel
+</Accordion>
+
+### Performance Monitoring
+
+Monitor key metrics:
+
+<Steps>
+  <Step title="Core Web Vitals">
+    - **LCP** (Largest Contentful Paint): < 2.5s
+    - **FID** (First Input Delay): < 100ms
+    - **CLS** (Cumulative Layout Shift): < 0.1
+  </Step>
+  
+  <Step title="API Response Times">
+    Check Vercel Functions logs:
+    - tRPC calls: < 500ms
+    - AI chat: Streaming (1-3s)
+    - Vector search: < 200ms
+  </Step>
+  
+  <Step title="Database Performance">
+    Monitor in Supabase dashboard:
+    - Query performance
+    - Connection pool usage
+    - Slow queries
+  </Step>
+</Steps>
+
+## Rollback Strategy
+
+### Instant Rollback
+
+Vercel keeps all deployments:
+
+1. Go to **Deployments** tab
+2. Find previous working deployment
+3. Click **⋯ → Promote to Production**
+4. Instant rollback
+
+### Database Rollback
+
+For schema changes:
+
+```bash
+# Revert last migration
+pnpm prisma migrate resolve --rolled-back 20240306_migration_name
+
+# Apply previous migration
+pnpm prisma migrate deploy
+```
+
+**Warning:** Schema rollbacks can cause data loss. Always backup first.
+
+## CI/CD Integration
+
+### GitHub Actions Example
+
+Automate checks before deploy:
+
+```yaml
+name: CI
+on: [pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'pnpm'
+      
+      - run: pnpm install
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm build
+```
+
+This runs on every PR before Vercel preview deployment.
+
+## Production Checklist
+
+Before going live:
+
+<Steps>
+  <Step title="Environment Variables">
+    - [ ] All production variables set
+    - [ ] No development URLs/keys
+    - [ ] OAuth redirect URIs updated
+    - [ ] Database connection pooling enabled
+  </Step>
+  
+  <Step title="Database">
+    - [ ] Production database created
+    - [ ] Migrations applied
+    - [ ] Backup strategy configured
+  </Step>
+  
+  <Step title="Security">
+    - [ ] `NEXTAUTH_SECRET` is strong and unique
+    - [ ] All API keys are production keys
+    - [ ] CORS configured if needed
+    - [ ] Rate limiting implemented
+  </Step>
+  
+  <Step title="Performance">
+    - [ ] Images optimized
+    - [ ] Bundle size checked
+    - [ ] Edge functions where appropriate
+    - [ ] Caching strategy verified
+  </Step>
+  
+  <Step title="Monitoring">
+    - [ ] Vercel Analytics enabled
+    - [ ] Error tracking configured
+    - [ ] Alerts set up
+  </Step>
+</Steps>
+
+## Custom Domain
+
+Add your own domain:
+
+<Steps>
+  <Step title="Add Domain in Vercel">
+    1. Go to **Settings → Domains**
+    2. Enter your domain (e.g., `uxie.ai`)
+    3. Click **Add**
+  </Step>
+  
+  <Step title="Configure DNS">
+    Add DNS records at your registrar:
+    
+    ```
+    Type: CNAME
+    Name: www (or @)
+    Value: cname.vercel-dns.com
+    ```
+    
+    Or use Vercel Nameservers for easier management.
+  </Step>
+  
+  <Step title="Update Environment Variables">
+    Update `NEXTAUTH_URL` to your domain:
+    ```bash
+    NEXTAUTH_URL="https://yourdomain.com"
+    ```
+  </Step>
+  
+  <Step title="Update OAuth Redirects">
+    Update Google OAuth redirect URIs to include your domain.
+  </Step>
+</Steps>
+
+## Scaling Considerations
+
+<CardGroup cols={2}>
+  <Card title="Database" icon="database">
+    **Supabase Limits:**
+    - Free: 500 MB, 2 GB bandwidth
+    - Pro: 8 GB, 50 GB bandwidth
+    
+    Consider upgrading as users grow.
+  </Card>
+  
+  <Card title="Vector Database" icon="search">
+    **Pinecone Limits:**
+    - Free: 1 index, 100k vectors
+    - Standard: Multiple indexes, unlimited vectors
+    
+    Monitor vector count per user.
+  </Card>
+  
+  <Card title="File Storage" icon="file">
+    **UploadThing Limits:**
+    - Free: 2 GB
+    - Pro: 100 GB+
+    
+    Implement file size limits per user.
+  </Card>
+  
+  <Card title="AI API Costs" icon="coins">
+    **Google Gemini Pricing:**
+    - Input: $0.075 / 1M tokens
+    - Output: $0.30 / 1M tokens
+    
+    Implement rate limiting to control costs.
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="sitemap" href="/development/architecture">
+    Review system architecture for optimization opportunities
+  </Card>
+  
+  <Card title="Contributing" icon="users" href="/development/contributing">
+    Learn how to contribute improvements
+  </Card>
+</CardGroup>

@@ -1,0 +1,302 @@
+---
+title: Authentication
+description: Learn how authentication works in Uxie's API using NextAuth.js
+---
+
+## Overview
+
+Uxie uses [NextAuth.js](https://next-auth.js.org/) for authentication, integrated with tRPC procedures to provide secure, type-safe API access.
+
+## Authentication Provider
+
+Currently, Uxie supports authentication via:
+
+<Card title="Google OAuth" icon="google">
+  Sign in with your Google account for secure, hassle-free authentication
+</Card>
+
+### Configuration
+
+The authentication is configured in `/src/server/auth.ts`:
+
+```typescript
+import { authOptions } from "@/server/auth";
+import GoogleProvider from "next-auth/providers/google";
+
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
+  providers: [
+    GoogleProvider({
+      clientId: env.GOOGLE_CLIENT_ID,
+      clientSecret: env.GOOGLE_CLIENT_SECRET,
+    }),
+  ],
+  session: {
+    strategy: "jwt",
+  },
+  pages: {
+    signIn: "/login",
+  },
+};
+```
+
+## Session Management
+
+### JWT Strategy
+
+Uxie uses JWT (JSON Web Tokens) for session management:
+
+- Sessions are stored as encrypted tokens
+- No database queries needed to validate sessions
+- Automatically refreshed on each request
+
+### Session Data
+
+The session includes enriched user data from the database:
+
+```typescript
+interface Session {
+  user: {
+    id: string;           // User's unique ID
+    name: string;         // Display name
+    email: string;        // Email address
+    image: string;        // Profile picture URL
+    plan: Plan;           // Subscription plan
+  }
+}
+
+enum Plan {
+  FREE = "FREE",
+  FREE_PLUS = "FREE_PLUS",
+  PRO = "PRO"
+}
+```
+
+## Protected Procedures
+
+### Using Protected Procedures
+
+Most API endpoints in Uxie require authentication. These use `protectedProcedure` instead of `publicProcedure`:
+
+```typescript
+import { createTRPCRouter, protectedProcedure } from "@/server/api/trpc";
+import { z } from "zod";
+
+export const documentRouter = createTRPCRouter({
+  getDocData: protectedProcedure
+    .input(z.object({ docId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      // ctx.session is guaranteed to be non-null
+      const userId = ctx.session.user.id;
+      
+      // Access control logic here
+      const doc = await ctx.prisma.document.findUnique({
+        where: {
+          id: input.docId,
+          ownerId: userId,
+        },
+      });
+      
+      return doc;
+    }),
+});
+```
+
+### Authentication Middleware
+
+The `protectedProcedure` uses middleware that enforces authentication:
+
+```typescript
+const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
+  if (!ctx.session?.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED" });
+  }
+  return next({
+    ctx: {
+      // Session is now non-nullable in procedure context
+      session: { ...ctx.session, user: ctx.session.user },
+    },
+  });
+});
+```
+
+## Public Procedures
+
+Some endpoints are public and don't require authentication:
+
+```typescript
+export const userRouter = createTRPCRouter({
+  submitFeedback: publicProcedure
+    .input(feedbackFormSchema)
+    .mutation(async ({ ctx, input }) => {
+      // ctx.session might be null
+      const userId = ctx?.session?.user?.id;
+      
+      return await ctx.prisma.feedback.create({
+        data: {
+          message: input.message,
+          type: input.type,
+          ...(userId ? { userId } : {}),
+        },
+      });
+    }),
+});
+```
+
+## Getting the Session
+
+### On the Client
+
+Use NextAuth's `useSession` hook:
+
+```typescript
+import { useSession } from "next-auth/react";
+
+function MyComponent() {
+  const { data: session, status } = useSession();
+  
+  if (status === "loading") {
+    return <div>Loading...</div>;
+  }
+  
+  if (status === "unauthenticated") {
+    return <div>Please sign in</div>;
+  }
+  
+  return <div>Welcome, {session.user.name}!</div>;
+}
+```
+
+### On the Server
+
+In API routes or `getServerSideProps`:
+
+```typescript
+import { getServerAuthSession } from "@/server/auth";
+
+export async function getServerSideProps(context) {
+  const session = await getServerAuthSession(context);
+  
+  if (!session) {
+    return {
+      redirect: {
+        destination: "/login",
+        permanent: false,
+      },
+    };
+  }
+  
+  return {
+    props: { session },
+  };
+}
+```
+
+## Authorization Patterns
+
+### Resource Ownership
+
+Check if the user owns a resource:
+
+```typescript
+const doc = await ctx.prisma.document.findUnique({
+  where: {
+    id: input.docId,
+    ownerId: ctx.session.user.id, // Only owner can access
+  },
+});
+
+if (!doc) {
+  throw new TRPCError({
+    code: "UNAUTHORIZED",
+    message: "Document not found or you are not the owner.",
+  });
+}
+```
+
+### Collaboration Access
+
+Check if the user is an owner or collaborator:
+
+```typescript
+const doc = await ctx.prisma.document.findUnique({
+  where: {
+    id: input.docId,
+    OR: [
+      { ownerId: ctx.session.user.id },
+      {
+        collaborators: {
+          some: {
+            userId: ctx.session.user.id,
+          },
+        },
+      },
+    ],
+  },
+});
+```
+
+### Role-Based Access
+
+Check specific collaborator roles:
+
+```typescript
+import { CollaboratorRole } from "@prisma/client";
+
+const doc = await ctx.prisma.document.findUnique({
+  where: {
+    id: input.docId,
+    OR: [
+      { ownerId: ctx.session.user.id },
+      {
+        collaborators: {
+          some: {
+            userId: ctx.session.user.id,
+            role: CollaboratorRole.EDITOR, // Only editors can perform this action
+          },
+        },
+      },
+    ],
+  },
+});
+```
+
+## Sign In/Sign Out
+
+### Sign In
+
+```typescript
+import { signIn } from "next-auth/react";
+
+<button onClick={() => signIn("google")}>
+  Sign in with Google
+</button>
+```
+
+### Sign Out
+
+```typescript
+import { signOut } from "next-auth/react";
+
+<button onClick={() => signOut()}>
+  Sign out
+</button>
+```
+
+## Error Handling
+
+Authentication errors return the `UNAUTHORIZED` error code:
+
+```typescript
+const { data, error } = api.document.getDocData.useQuery(
+  { docId: "123" },
+  {
+    onError: (error) => {
+      if (error.data?.code === "UNAUTHORIZED") {
+        // Redirect to login or show error message
+        router.push("/login");
+      }
+    },
+  }
+);
+```

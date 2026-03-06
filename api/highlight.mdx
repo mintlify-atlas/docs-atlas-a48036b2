@@ -1,0 +1,391 @@
+---
+title: Highlight API
+description: Add, update, and delete text and image highlights in PDF documents
+---
+
+## Overview
+
+The Highlight API allows users to create and manage highlights within PDF documents. Highlights can be either text selections or image areas.
+
+## Procedures
+
+### add
+
+Create a new highlight in a document. Available to document owners and editors.
+
+<ParamField path="documentId" type="string" required>
+  The document ID to add the highlight to
+</ParamField>
+
+<ParamField path="id" type="string" required>
+  Client-generated unique identifier for the highlight
+</ParamField>
+
+<ParamField path="type" type="HighlightTypeEnum" required>
+  Type of highlight: `TEXT` or `IMAGE`
+</ParamField>
+
+<ParamField path="pageNumber" type="number" required>
+  The page number where the highlight is located
+</ParamField>
+
+<ParamField path="boundingRect" type="Rectangle" required>
+  The bounding rectangle that encompasses the entire highlight
+  
+  <Expandable title="properties">
+    <ParamField path="x1" type="number" required>
+      Left coordinate
+    </ParamField>
+    
+    <ParamField path="y1" type="number" required>
+      Top coordinate
+    </ParamField>
+    
+    <ParamField path="x2" type="number" required>
+      Right coordinate
+    </ParamField>
+    
+    <ParamField path="y2" type="number" required>
+      Bottom coordinate
+    </ParamField>
+    
+    <ParamField path="width" type="number" required>
+      Width of the rectangle
+    </ParamField>
+    
+    <ParamField path="height" type="number" required>
+      Height of the rectangle
+    </ParamField>
+    
+    <ParamField path="pageNumber" type="number">
+      Page number (optional)
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+<ParamField path="rects" type="Rectangle[]" required>
+  Array of rectangles that make up the highlight. For text highlights, this typically includes one rectangle per line. For image highlights, usually just one rectangle.
+</ParamField>
+
+**Example:**
+
+<CodeGroup>
+```typescript Text Highlight
+import { api } from "@/lib/api";
+import { HighlightTypeEnum } from "@prisma/client";
+
+const mutation = api.highlight.add.useMutation();
+
+// Add a text highlight across two lines
+mutation.mutate({
+  documentId: "clx123abc",
+  id: "highlight-" + crypto.randomUUID(),
+  type: HighlightTypeEnum.TEXT,
+  pageNumber: 5,
+  boundingRect: {
+    x1: 100,
+    y1: 200,
+    x2: 500,
+    y2: 240,
+    width: 400,
+    height: 40,
+    pageNumber: 5
+  },
+  rects: [
+    {
+      x1: 100,
+      y1: 200,
+      x2: 500,
+      y2: 220,
+      width: 400,
+      height: 20,
+      pageNumber: 5
+    },
+    {
+      x1: 100,
+      y1: 220,
+      x2: 300,
+      y2: 240,
+      width: 200,
+      height: 20,
+      pageNumber: 5
+    }
+  ]
+});
+```
+
+```typescript Image Highlight
+import { HighlightTypeEnum } from "@prisma/client";
+
+const mutation = api.highlight.add.useMutation();
+
+// Add an image/area highlight
+mutation.mutate({
+  documentId: "clx123abc",
+  id: "highlight-" + crypto.randomUUID(),
+  type: HighlightTypeEnum.IMAGE,
+  pageNumber: 12,
+  boundingRect: {
+    x1: 150,
+    y1: 300,
+    x2: 450,
+    y2: 500,
+    width: 300,
+    height: 200,
+    pageNumber: 12
+  },
+  rects: [
+    {
+      x1: 150,
+      y1: 300,
+      x2: 450,
+      y2: 500,
+      width: 300,
+      height: 200,
+      pageNumber: 12
+    }
+  ]
+});
+```
+</CodeGroup>
+
+---
+
+### delete
+
+Delete a highlight from a document. Available to document owners and editors.
+
+<ParamField path="highlightId" type="string" required>
+  The unique identifier of the highlight to delete
+</ParamField>
+
+<ParamField path="documentId" type="string" required>
+  The document ID (for authorization verification)
+</ParamField>
+
+**Example:**
+
+```typescript
+const mutation = api.highlight.delete.useMutation({
+  onSuccess: () => {
+    console.log("Highlight deleted successfully");
+  }
+});
+
+mutation.mutate({
+  highlightId: "h123",
+  documentId: "clx123abc"
+});
+```
+
+---
+
+### updateAreaHighlight
+
+Update an existing area/image highlight's position. Available to document owners and editors.
+
+<ParamField path="documentId" type="string" required>
+  The document ID
+</ParamField>
+
+<ParamField path="id" type="string" required>
+  The highlight ID to update
+</ParamField>
+
+<ParamField path="type" type="HighlightTypeEnum" required>
+  Type of highlight: typically `IMAGE` for area highlights
+</ParamField>
+
+<ParamField path="pageNumber" type="number">
+  The page number (optional)
+</ParamField>
+
+<ParamField path="boundingRect" type="Rectangle" required>
+  The new bounding rectangle for the highlight
+</ParamField>
+
+<Note>
+This procedure updates only the bounding rectangle, not the individual rects array. It's typically used for area/image highlights that have been moved or resized.
+</Note>
+
+**Example:**
+
+```typescript
+const mutation = api.highlight.updateAreaHighlight.useMutation();
+
+// Resize an image highlight
+mutation.mutate({
+  documentId: "clx123abc",
+  id: "h123",
+  type: HighlightTypeEnum.IMAGE,
+  pageNumber: 12,
+  boundingRect: {
+    x1: 150,
+    y1: 300,
+    x2: 500,  // Changed from 450
+    y2: 550,  // Changed from 500
+    width: 350,
+    height: 250
+  }
+});
+```
+
+## Data Models
+
+### HighlightTypeEnum
+
+```typescript
+enum HighlightTypeEnum {
+  TEXT = "TEXT",     // Text selection highlight
+  IMAGE = "IMAGE"    // Area/image highlight
+}
+```
+
+### Highlight Schema
+
+```typescript
+interface Highlight {
+  id: string;
+  type: HighlightTypeEnum;
+  documentId: string;
+  createdAt: Date;
+  pageNumber: number | null;
+  boundingRectangle: Coordinate | null;
+  rectangles: Coordinate[];
+}
+
+interface Coordinate {
+  id: string;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+  width: number;
+  height: number;
+  pageNumber: number | null;
+}
+```
+
+## Highlight Position Data
+
+Highlights are stored with two types of position data:
+
+1. **Bounding Rectangle**: A single rectangle that encompasses the entire highlight
+2. **Rectangles Array**: Individual rectangles that make up the highlight
+
+### Text Highlights
+
+For text highlights that span multiple lines:
+
+```typescript
+{
+  boundingRect: {
+    // Encompasses all lines
+    x1: 100, y1: 200,
+    x2: 500, y2: 260
+  },
+  rects: [
+    // First line
+    { x1: 100, y1: 200, x2: 500, y2: 220 },
+    // Second line  
+    { x1: 100, y1: 220, x2: 500, y2: 240 },
+    // Third line (partial)
+    { x1: 100, y1: 240, x2: 300, y2: 260 }
+  ]
+}
+```
+
+### Image Highlights
+
+For area/image highlights:
+
+```typescript
+{
+  boundingRect: {
+    x1: 150, y1: 300,
+    x2: 450, y2: 500
+  },
+  rects: [
+    // Usually just one rectangle
+    { x1: 150, y1: 300, x2: 450, y2: 500 }
+  ]
+}
+```
+
+## Authorization
+
+All highlight procedures require the user to be either:
+
+- The document owner, OR
+- A collaborator with `EDITOR` role
+
+Viewers cannot create, update, or delete highlights.
+
+```typescript
+// Authorization check in the API
+const doc = await ctx.prisma.document.findUnique({
+  where: {
+    id: input.documentId,
+    OR: [
+      { ownerId: ctx.session.user.id },
+      {
+        collaborators: {
+          some: {
+            userId: ctx.session.user.id,
+            role: CollaboratorRole.EDITOR,
+          },
+        },
+      },
+    ],
+  },
+});
+
+if (!doc) {
+  throw new TRPCError({
+    code: "UNAUTHORIZED",
+    message: "You are not authorized to edit this document",
+  });
+}
+```
+
+## Error Handling
+
+Common errors:
+
+- `UNAUTHORIZED` - User doesn't have permission to edit the document
+- `INTERNAL_SERVER_ERROR` - Database or validation error
+
+```typescript
+const mutation = api.highlight.add.useMutation({
+  onError: (error) => {
+    if (error.data?.code === "UNAUTHORIZED") {
+      toast.error("You don't have permission to add highlights");
+    } else {
+      toast.error("Failed to add highlight");
+    }
+  },
+  onSuccess: () => {
+    toast.success("Highlight added");
+  }
+});
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Generate IDs Client-Side" icon="fingerprint">
+    Generate highlight IDs on the client using `crypto.randomUUID()` for optimistic updates
+  </Card>
+  
+  <Card title="Validate Coordinates" icon="ruler">
+    Ensure coordinates are within page boundaries before sending to the API
+  </Card>
+  
+  <Card title="Batch Operations" icon="layer-group">
+    When adding multiple highlights, use React Query's batch mutation features
+  </Card>
+  
+  <Card title="Handle Cascading Deletes" icon="trash">
+    Highlights are automatically deleted when their parent document is deleted
+  </Card>
+</CardGroup>

@@ -1,0 +1,413 @@
+---
+title: Text-to-Speech
+description: Listen to your PDFs with word-by-word highlighting, multiple voice options, and adjustable reading speed
+---
+
+## Overview
+
+Uxie's text-to-speech feature turns your PDFs into audio, allowing you to listen while following along with synchronized highlighting. Choose from multiple voice engines and adjust playback speed to match your preferences.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="Word Highlighting" icon="highlighter">
+    Follow along with word-by-word highlighting as the document is read
+  </Card>
+  <Card title="Multiple Voices" icon="microphone">
+    Choose from browser voices, Kokoro AI, or Supertonic AI voices
+  </Card>
+  <Card title="Speed Control" icon="gauge-high">
+    Adjust reading speed from 0.5x to 2x
+  </Card>
+  <Card title="Follow Along Mode" icon="eye">
+    Auto-scroll the page to keep the current word in view
+  </Card>
+</CardGroup>
+
+## Getting Started
+
+### Starting Text-to-Speech
+
+<Steps>
+  <Step title="Open TTS Controls">
+    Click the audio icon in the bottom toolbar
+  </Step>
+  <Step title="Press Play">
+    Click the **Play** button to start reading from the current page
+  </Step>
+  <Step title="Follow Along">
+    Watch as words are highlighted in real-time
+  </Step>
+  <Step title="Navigate">
+    Use controls to pause, skip, or adjust speed
+  </Step>
+</Steps>
+
+<Note>
+  TTS requires the browser's SpeechSynthesis API. All modern browsers support this feature.
+</Note>
+
+## TTS Controls
+
+### Playback Buttons
+
+<Accordion title="Play / Pause">
+  - **Play** (▶): Start or resume reading
+  - **Pause** (⏸): Temporarily stop without losing position
+  - State persists - resume exactly where you paused
+</Accordion>
+
+<Accordion title="Skip Forward">
+  - **Skip** (⏭): Jump to the next sentence
+  - Useful for navigating quickly through familiar content
+  - Maintains reading flow and highlighting
+</Accordion>
+
+<Accordion title="Stop">
+  - **Stop** (🚫): End reading session
+  - Resets to beginning of current page
+  - Clears all highlighting
+</Accordion>
+
+### Reading Speed
+
+Click the **speed button** to cycle through speeds:
+
+- **0.5x** - Slow, careful listening
+- **0.75x** - Relaxed pace
+- **1x** - Normal reading speed (default)
+- **1.25x** - Slightly faster
+- **1.5x** - Fast reading
+- **1.75x** - Very fast
+- **2x** - Maximum speed
+
+<Tip>
+  Start at 1x and gradually increase speed as you get comfortable. 1.25x to 1.5x is optimal for most users.
+</Tip>
+
+### Follow Along Mode
+
+Toggle the **Eye icon** to enable/disable:
+
+- **Enabled** (highlighted): Page auto-scrolls to keep the current word visible
+- **Disabled**: Page stays fixed - you manually scroll
+
+Perfect for:
+- Listening while doing other tasks
+- Following along in bed or on the couch
+- Studying without constant scrolling
+
+Implemented at `/src/components/pdf-reader/toolbar/tts-controls.tsx`.
+
+## Voice Options
+
+### Voice Engines
+
+Uxie supports three TTS engines:
+
+<AccordionGroup>
+  <Accordion title="Browser Voices">
+    **Native system voices**
+    
+    - Built into your operating system
+    - No additional setup required
+    - Fast and reliable
+    - Quality varies by OS
+    - Free
+    
+    Available voices depend on your system:
+    - Windows: Microsoft David, Microsoft Zira, etc.
+    - macOS: Alex, Samantha, Victoria, etc.
+    - Linux: eSpeak voices
+  </Accordion>
+  
+  <Accordion title="Kokoro AI">
+    **AI-powered natural voices**
+    
+    - High-quality neural TTS
+    - More natural-sounding than browser voices
+    - Requires WebGPU or WASM support
+    - Multiple voice personas available
+    - May require initial model download
+    
+    Supported voices defined at `/src/lib/tts/providers/kokoro-provider.ts`
+  </Accordion>
+  
+  <Accordion title="Supertonic AI">
+    **Premium AI voices**
+    
+    - Studio-quality voice synthesis
+    - Extremely natural prosody
+    - Best voice quality available
+    - May require API access
+    
+    Supported voices defined at `/src/lib/tts/providers/supertonic-provider.ts`
+  </Accordion>
+</AccordionGroup>
+
+### Choosing a Voice
+
+<Note>
+  Voice selection UI is currently in development. The default voice is determined by your browser and system settings.
+</Note>
+
+## Reading Modes
+
+### Continuous Reading
+
+Reading from start to finish:
+
+1. Navigate to your starting page
+2. Click **Play**
+3. TTS reads the entire page, then advances
+4. Continues until you stop or reach the end
+
+### Selected Text Reading
+
+Read just a specific passage:
+
+<Steps>
+  <Step title="Select Text">
+    Highlight the text you want to hear
+  </Step>
+  <Step title="Click Read Icon">
+    Click the audio icon in the selection popover
+  </Step>
+  <Step title="Listen">
+    TTS reads only the selected text
+  </Step>
+</Steps>
+
+Implemented at `/src/components/pdf-reader/highlight-popover.tsx:72`.
+
+### Resume Reading
+
+<Note>
+  Continue from last position feature is in development. Currently, TTS restarts from the beginning of the current page when you reload.
+</Note>
+
+## Word Highlighting
+
+### How It Works
+
+1. TTS extracts text from the PDF in blocks
+2. Text is split into sentences
+3. As each word is spoken, it's highlighted on the page
+4. Highlighting follows the audio in real-time
+
+### Highlight Appearance
+
+- **Active word**: Highlighted in bright color
+- **Smooth transitions**: Highlighting moves fluidly between words
+- **Sentence-aware**: Pauses briefly at sentence boundaries
+
+### Reading Modes
+
+Two highlighting modes are available:
+
+<Accordion title="TEXT Mode">
+  Standard word-by-word highlighting. Used when reading selected text or specific passages.
+</Accordion>
+
+<Accordion title="SENTENCE Mode">
+  Sentence-by-sentence highlighting. Used for continuous document reading.
+</Accordion>
+
+Mode constants defined at `/src/components/pdf-reader/constants.ts:1`.
+
+## Technical Details
+
+### Implementation
+
+The TTS system consists of:
+
+**Base Provider** (`/src/lib/tts/base-audio-provider.ts`):
+- Abstract class for all TTS engines
+- Handles audio playback
+- Manages state (playing, paused, stopped)
+
+**Browser Provider** (`/src/lib/tts/providers/browser-provider.ts`):
+- Uses Web Speech API
+- SpeechSynthesis interface
+- System voice access
+
+**Kokoro Provider** (`/src/lib/tts/providers/kokoro-provider.ts`):
+- Neural TTS model
+- WebGPU acceleration
+- WASM fallback
+
+**Supertonic Provider** (`/src/lib/tts/providers/supertonic-provider.ts`):
+- Cloud-based AI TTS
+- Premium voice quality
+
+### Engine Detection
+
+```typescript
+export function getEngineFromVoice(voiceId: TTSVoiceId): TTSEngineType {
+  if (BROWSER_VOICES.some((v) => v.id === voiceId)) {
+    return "browser";
+  }
+  if (KOKORO_VOICES.some((v) => v.id === voiceId)) {
+    return "kokoro";
+  }
+  if (SUPERTONIC_VOICES.some((v) => v.id === voiceId)) {
+    return "supertonic";
+  }
+  return "browser"; // default
+}
+```
+
+From `/src/lib/tts/index.ts:14`.
+
+### WebGPU Detection
+
+For Kokoro AI voices:
+
+```typescript
+export async function detectWebGPU(): Promise<boolean> {
+  if (typeof navigator === "undefined" || !("gpu" in navigator)) {
+    return false;
+  }
+  try {
+    const adapter = await navigator.gpu.requestAdapter();
+    return adapter !== null;
+  } catch {
+    return false;
+  }
+}
+```
+
+WebGPU provides hardware acceleration for AI voice synthesis.
+
+### Reading Status States
+
+```typescript
+enum READING_STATUS {
+  IDLE,     // Not reading
+  READING,  // Currently reading
+  PAUSED    // Temporarily paused
+}
+```
+
+State management ensures proper control flow and UI updates.
+
+## Best Practices
+
+<Tip>
+  **Use headphones**: Better audio quality and less distraction for those around you.
+</Tip>
+
+<Tip>
+  **Enable Follow Along**: Let the page auto-scroll so you can focus on listening and understanding.
+</Tip>
+
+<Tip>
+  **Adjust speed gradually**: Start at 1x, then increase by 0.25x increments until you find your optimal speed.
+</Tip>
+
+<Tip>
+  **Combine with highlighting**: Listen while the AI reads, then highlight important passages afterward.
+</Tip>
+
+<Tip>
+  **Use for editing**: Listen to your own notes to catch awkward phrasing or errors.
+</Tip>
+
+## Accessibility
+
+TTS makes Uxie more accessible:
+
+- **Visual impairments**: Listen to documents without reading
+- **Dyslexia**: Hear correct pronunciation and pacing
+- **Learning disabilities**: Multi-sensory learning (audio + visual)
+- **ESL learners**: Improve pronunciation and listening skills
+- **Multitasking**: Absorb content while doing other activities
+
+## Limitations
+
+<Warning>
+  - TTS only works with text-based PDFs
+  - Scanned PDFs must be OCR'd first
+  - Some special characters may be mispronounced
+  - Mathematical formulas are read as text, not equations
+  - Tables may not read in logical order
+</Warning>
+
+### Browser Compatibility
+
+| Browser | Browser Voices | Kokoro AI | Supertonic AI |
+|---------|---------------|-----------|---------------|
+| Chrome  | ✓ | ✓ (WebGPU) | ✓ |
+| Edge    | ✓ | ✓ (WebGPU) | ✓ |
+| Firefox | ✓ | ✓ (WASM) | ✓ |
+| Safari  | ✓ | ✗ | ✓ |
+
+<Note>
+  Safari does not support WebGPU yet, limiting Kokoro AI voice availability.
+</Note>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="No sound / TTS not working">
+    - Check system volume and browser permissions
+    - Ensure speaker/headphones are connected
+    - Try refreshing the page
+    - Check browser console for errors
+    - Verify SpeechSynthesis API support: open DevTools and run `window.speechSynthesis`
+  </Accordion>
+  
+  <Accordion title="Words not highlighting">
+    - PDF may be image-based (use OCR first)
+    - Some PDF formats don't support text extraction
+    - Try a different PDF viewer or re-export the PDF
+    - Check if text is selectable in the PDF
+  </Accordion>
+  
+  <Accordion title="Voice is robotic / poor quality">
+    - Browser voices vary by OS and can sound robotic
+    - Try Kokoro or Supertonic voices for better quality
+    - Update your operating system for newer voice engines
+    - On Windows, install additional language packs
+  </Accordion>
+  
+  <Accordion title="Reading skips words or sentences">
+    - PDF text extraction may have issues
+    - Complex layouts (multi-column, tables) can confuse extraction
+    - Try adjusting reading speed (slower can help)
+    - Report the issue if it persists across documents
+  </Accordion>
+  
+  <Accordion title="Follow Along not working">
+    - Ensure the button is highlighted (active)
+    - Try toggling it off and on again
+    - Check if page scrolling is locked by another extension
+    - Refresh the page and try again
+  </Accordion>
+</AccordionGroup>
+
+## Future Enhancements
+
+<Note>
+  Planned features:
+  - Voice selection UI
+  - Bookmark positions to resume later
+  - Download audio files
+  - Customize highlight colors
+  - Reading statistics (time listened, pages read)
+  - Playlist mode (queue multiple documents)
+</Note>
+
+## Related Features
+
+<CardGroup cols={3}>
+  <Card title="PDF Reading" icon="file-pdf" href="/features/pdf-reading">
+    Navigate and view your documents
+  </Card>
+  <Card title="Annotations" icon="highlighter" href="/features/annotations">
+    Highlight while listening
+  </Card>
+  <Card title="OCR" icon="text" href="/features/ocr">
+    Make scanned PDFs readable
+  </Card>
+</CardGroup>
