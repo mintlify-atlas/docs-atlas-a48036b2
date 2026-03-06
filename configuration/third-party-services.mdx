@@ -73,7 +73,7 @@ Pinecone stores document embeddings for semantic search and chat functionality.
 2. Sign up and create a new index
 3. Index configuration:
    - **Name:** `uxie`
-   - **Dimensions:** `384` (for sentence-transformers/all-MiniLM-L6-v2)
+   - **Dimensions:** `768` (for BAAI/bge-base-en-v1.5 embeddings)
    - **Metric:** `cosine`
    - **Environment:** Choose your region (e.g., `us-east-1-aws`)
 
@@ -112,7 +112,7 @@ When a document is uploaded:
 4. Document is marked as `isVectorised: true` in database
 
 <Warning>
-  Make sure your Pinecone index dimensions (384) match your embedding model's output dimensions.
+  Make sure your Pinecone index dimensions (768) match your embedding model's output dimensions.
 </Warning>
 
 ### Metadata Structure
@@ -143,12 +143,12 @@ HUGGINGFACE_API_KEY=your-huggingface-api-key
 
 ### Embedding Model
 
-Uxie uses the **sentence-transformers/all-MiniLM-L6-v2** model:
+Uxie uses the **BAAI/bge-base-en-v1.5** model:
 
-- **Dimensions:** 384
-- **Max sequence length:** 256 tokens
-- **Performance:** Fast inference, good quality
-- **Use case:** Semantic search and similarity
+- **Dimensions:** 768
+- **Max sequence length:** 512 tokens
+- **Performance:** High-quality embeddings for semantic search
+- **Use case:** Document vectorization and similarity search
 
 ### Implementation
 
@@ -163,7 +163,7 @@ const createHuggingFaceEmbeddings = () => {
       const embeddings = await Promise.all(
         texts.map(async (text) => {
           const result = await hf.featureExtraction({
-            model: "sentence-transformers/all-MiniLM-L6-v2",
+            model: "BAAI/bge-base-en-v1.5",
             inputs: text,
           });
           return parseEmbeddingResult(result);
