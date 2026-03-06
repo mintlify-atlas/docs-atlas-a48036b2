@@ -1,0 +1,120 @@
+{
+  "projectType": "saas",
+  "projectName": "Uxie",
+  "projectDescription": "AI-powered PDF reader with annotations, note-taking, collaboration, flashcards, TTS, and OCR for enhanced learning.",
+  "theme": "almond",
+  "primaryColor": "#1256b2",
+  "lightColor": "#2c2d2d",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/pdf-reading",
+              "features/annotations",
+              "features/note-taking",
+              "features/ai-chat",
+              "features/flashcards",
+              "features/text-to-speech",
+              "features/ocr",
+              "features/collaboration"
+            ]
+          },
+          {
+            "group": "Advanced Features",
+            "pages": [
+              "advanced/reading-modes",
+              "advanced/ai-completion",
+              "advanced/document-management",
+              "advanced/keyboard-shortcuts"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "configuration/environment-variables",
+              "configuration/database-setup",
+              "configuration/authentication",
+              "configuration/third-party-services"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview",
+              "api/authentication"
+            ]
+          },
+          {
+            "group": "tRPC Endpoints",
+            "pages": [
+              "api/document",
+              "api/highlight",
+              "api/message",
+              "api/flashcard",
+              "api/user"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Contributing",
+            "pages": [
+              "development/architecture",
+              "development/tech-stack",
+              "development/contributing",
+              "development/deployment"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "PDF highlighting and annotations",
+    "AI-powered document chat with RAG",
+    "Collaborative note-taking with BlockNote",
+    "AI-generated flashcards with feedback",
+    "Text-to-speech with sentence highlighting",
+    "OCR support for scanned documents",
+    "Real-time collaboration with Liveblocks",
+    "Multiple reading modes (bionic, RSVP, read-along)"
+  ],
+  "publicApiSurface": [
+    "documentRouter.create",
+    "documentRouter.getById",
+    "documentRouter.update",
+    "documentRouter.delete",
+    "documentRouter.list",
+    "highlightRouter.create",
+    "highlightRouter.getByDocument",
+    "highlightRouter.delete",
+    "messageRouter.create",
+    "messageRouter.getByDocument",
+    "flashcardRouter.create",
+    "flashcardRouter.getByDocument",
+    "flashcardRouter.submitAttempt",
+    "userRouter.getProfile",
+    "userRouter.updatePlan"
+  ]
+}
